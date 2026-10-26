@@ -3,8 +3,9 @@
 **绝对不是为了校园跑而写的** 桌面端虚拟定位工具。
 
 ## 下载安装
+
 **Windows 10/11**
-- [下载 Elsewhere-Setup-0.3.0.exe](https://github.com/peagothedreamer/Elsewhere/releases/download/v0.3.0/Elsewhere-Setup-0.3.0.exe) — 安装版（推荐，装到用户目录，无需管理员）
+- [下载 Elsewhere-Setup-0.3.0.exe](https://github.com/peagothedreamer/Elsewhere/releases/download/v0.3.0/Elsewhere-Setup-0.3.0.exe) — 安装版（推荐）
 - [Elsewhere-0.3.0-portable.zip](https://github.com/peagothedreamer/Elsewhere/releases/download/v0.3.0/Elsewhere-0.3.0-portable.zip) — 免安装，解压后运行 `Elsewhere.exe`
 
 **macOS 14+（Apple Silicon）**
@@ -24,7 +25,7 @@
 - iPhone：**iOS 17+**，开启「设置 → 隐私与安全性 → 开发者模式」并重启确认
 - 数据线连接并解锁 iPhone；首次连接时在手机上点「信任」
 - 地图瓦片与地点搜索需要联网（注入与路线播放离线可用）
-- 关闭vpn
+- 关闭手机vpn
 
 ## 从源码运行
 ```bash
@@ -73,10 +74,28 @@ macOS 上把 `python` 换成 `python3`。需要 Python 3.11+。
 - `tests/` — 自测
 - `packaging/` — PyInstaller spec、Inno Setup 脚本、构建依赖
 
-## 当前范围
-- 注入走 iOS 17+ DVT / SimulateLocation（pymobiledevice3 + RSD 隧道）。
-- 地图为在线 OSM 瓦片（本地缓存由 QtWebEngine 负责），无离线瓦片包。
-- 不持久化模拟位置：重启应用后不会自动注入。
+## 实现原理
+**定位注入**
+- 通过 pymobiledevice3 与 iPhone 通信。iOS 17+ 的模拟定位走 DVT 的 `SimulateLocation` 服务：先经 usbmuxd 建立 RSD 用户态隧道，再在隧道上连接 Instruments 服务，无需越狱。
+- 隧道底层的 PyTCP 协议栈是进程级单例，因此进程内只保留一个常驻会话（隧道 + DVT + LocationSimulation），单点注入、路线播放和恢复真实位置共用它。
+- pymobiledevice3 的接口是异步的：应用在后台线程维护一个共享 asyncio 事件循环，设备操作投递进去并同步取回结果。注入和路线播放都在工作线程执行，结果经队列回到 UI，界面不会被阻塞。
+- 设备可见性由后台线程每 2 秒轮询；断连时路线冻结在当前进度，设备恢复后重建隧道并重新注入最后坐标。
+
+**路线播放**
+- 路线按闭环折线与 haversine 距离处理；跳点模式按“冷却”逐点瞬移，平滑模式按设定速度沿弧长插值（约 10 Hz）。
+- 播放器运行在独立线程；暂停会冻结计时/弧长，停止可随时中断。
+
+**界面与地图**
+- PySide6（Qt）界面；地图是本地 Leaflet 页面，由 QtWebEngine 加载在线 OSM 瓦片。地图点击和搜索结果通过 QWebChannel 回传。
+- 地名搜索使用 Nominatim，限速 1 次/秒；路线预设以 JSON 存于用户数据目录。
+
+**设备准备**
+- 启动时按“连接 → 信任 → 开发者模式 → 就绪”检测；配对和显示开发者模式选项由 pymobiledevice3 在后台完成。
+- Windows 缺少 Apple Mobile Device Service 时，引导页可直接从 Apple 官方 CDN 下载并静默安装 AMDS（需管理员授权），为 pymobiledevice3 提供 usbmuxd。
+
+**限制**
+- 仅支持 iOS 17+；地图依赖在线 OSM 瓦片，无离线包。
+- 模拟位置不持久化：应用重启后不会自动重新注入。
 
 ## 许可证
 GPL-3.0，见 [LICENSE](LICENSE)；第三方组件许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
