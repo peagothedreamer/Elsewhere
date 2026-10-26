@@ -11,22 +11,22 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt -r requirements-build.txt
+          python -m pip install -r requirements.txt -r packaging/requirements-build.txt
 
       - name: Test
-        run: python test_core.py
+        run: python tests/test_core.py
 
       - name: Build (PyInstaller)
-        run: python -m PyInstaller --noconfirm --clean Elsewhere.spec
+        run: python -m PyInstaller --noconfirm --clean packaging/Elsewhere.spec
 
       - name: Make portable zip
         shell: pwsh
@@ -41,7 +41,7 @@ jobs:
         shell: pwsh
         run: |
           $ver = "${{ github.ref_name }}".TrimStart("v")
-          iscc "/DMyAppVersion=$ver" installer/Elsewhere.iss
+          iscc "/DMyAppVersion=$ver" packaging/installer/Elsewhere.iss
 
       - name: Checksums
         shell: pwsh

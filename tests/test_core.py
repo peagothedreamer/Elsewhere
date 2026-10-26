@@ -1,8 +1,11 @@
 """核心逻辑自检：坐标解析、mock 设备、路线几何、两种播放执行器。无第三方依赖。"""
 import pathlib
 import queue
+import sys
 import tempfile
 import time
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "src"))
 
 import paths
 from inject import Coordinate, Device, InjectionError, MockDevice, parse_coordinate

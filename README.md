@@ -1,4 +1,4 @@
-# <img src="app.png" width="32" height="32" alt=""> Elsewhere — iPhone 虚拟定位工具
+# <img src="assets/app.png" width="32" height="32" alt=""> Elsewhere — iPhone 虚拟定位工具
 
 **绝对不是为了校园跑而写的** 桌面端虚拟定位工具。
 
@@ -20,7 +20,7 @@
 ## 从源码运行
 ```bash
 python -m pip install -r requirements.txt
-python main.py
+python src/main.py
 ```
 
 需要 Python 3.11+。用户数据（预设、Mapbox token）存放在 `%APPDATA%\Elsewhere\`。
@@ -53,6 +53,12 @@ python main.py
 ### 断连恢复
 每 2 秒检测设备是否仍在。断开时状态栏提示「已断开，重连中…」，路线进度冻结；设备回来后自动重建隧道、重新注入最后坐标，路线从冻结处继续。空闲状态下同样会自动恢复模拟位置。
 
+
+## 仓库结构
+- `src/` — 应用源码与地图资源
+- `assets/` — 应用图标
+- `tests/` — 自测
+- `packaging/` — PyInstaller spec、Inno Setup 脚本、构建依赖
 
 ## 当前范围
 - 注入走 iOS 17+ DVT / SimulateLocation（pymobiledevice3 + RSD 隧道）。

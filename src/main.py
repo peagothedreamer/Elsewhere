@@ -1324,7 +1324,10 @@ def main() -> int:
     app.setStyle("Fusion")
     app.setFont(QFont("Bahnschrift", 9))
     app.setStyleSheet(theme_c.QSS)
-    icon_path = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent)) / "app.ico"
+    if getattr(sys, "_MEIPASS", None):
+        icon_path = Path(sys._MEIPASS) / "app.ico"
+    else:
+        icon_path = Path(__file__).resolve().parent.parent / "assets" / "app.ico"
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
     win = MainWindow()

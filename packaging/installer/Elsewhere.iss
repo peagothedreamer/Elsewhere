@@ -1,4 +1,4 @@
-; Build: iscc /DMyAppVersion=0.1.0 installer\Elsewhere.iss
+; Build: iscc /DMyAppVersion=0.1.0 packaging\installer\Elsewhere.iss
 #define MyAppName "Elsewhere"
 #ifndef MyAppVersion
   #define MyAppVersion "0.1.0"
@@ -16,14 +16,14 @@ DefaultDirName={localappdata}\Programs\Elsewhere
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
-OutputDir=..\dist
+OutputDir=..\..\dist
 OutputBaseFilename=Elsewhere-Setup-{#MyAppVersion}
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-SetupIconFile=..\app.ico
+SetupIconFile=..\..\assets\app.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 
 [Languages]
@@ -33,10 +33,10 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"; Flags: unchecked
 
 [Files]
-Source: "..\dist\Elsewhere\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\LICENSES\*"; DestDir: "{app}\LICENSES"; Flags: ignoreversion
+Source: "..\..\dist\Elsewhere\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\LICENSES\*"; DestDir: "{app}\LICENSES"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

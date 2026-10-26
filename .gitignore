@@ -10,3 +10,11 @@ Elsewhere_PRD.md
 # 构建产物
 build/
 dist/
+*.pyo
+# 虚拟环境与 IDE
+.venv/
+venv/
+.idea/
+.vscode/
+.pytest_cache/
+*.log

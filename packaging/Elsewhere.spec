@@ -1,11 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
+from pathlib import Path
 
+ROOT = Path(SPECPATH).resolve().parent
 
 a = Analysis(
-    ['main.py'],
-    pathex=[],
+    [str(ROOT / 'src' / 'main.py')],
+    pathex=[str(ROOT / 'src')],
     binaries=[],
-    datas=[('web', 'web'), ('app.ico', '.')],
+    datas=[(str(ROOT / 'src' / 'web'), 'web'), (str(ROOT / 'assets' / 'app.ico'), '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -29,7 +31,7 @@ exe = EXE(
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
-    icon='app.ico',
+    icon=str(ROOT / 'assets' / 'app.ico'),
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
