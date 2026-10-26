@@ -9,6 +9,13 @@ https://github.com/doronz88/pymobiledevice3
 Copyright (C) doronz88 and contributors. Licensed under GNU GPL v3.0.
 分发版的完整源码见 https://github.com/peagothedreamer/Elsewhere （含构建脚本与依赖版本）。
 
+## Wintun — Prebuilt Binaries License
+
+https://www.wintun.net/
+
+应用通过 `pytun_pmd3` 附带 amd64 的 `wintun.dll`。许可全文随安装包位于
+`_internal/pytun_pmd3/wintun/LICENSE.txt`。
+
 ## PySide6 / Qt for Python — LGPL-3.0
 
 https://www.qt.io/qt-for-python

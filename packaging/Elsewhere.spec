@@ -1,7 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 from pathlib import Path
+import importlib.util
 
 ROOT = Path(SPECPATH).resolve().parent
+
+# pytun_pmd3 在 import 时通过 ctypes 加载 wintun.dll；PyInstaller 不会自动收集它。
+_pytun = importlib.util.find_spec('pytun_pmd3')
+if _pytun is None or _pytun.origin is None:
+    raise SystemExit('pytun_pmd3 is not installed; cannot package tunnel support')
+PYTUN = Path(_pytun.origin).parent
 
 # pymobiledevice3 的 CLI / WebInspector / 截图功能依赖；本应用不会加载。
 EXCLUDES = [
@@ -57,7 +64,13 @@ a = Analysis(
     [str(ROOT / 'src' / 'main.py')],
     pathex=[str(ROOT / 'src')],
     binaries=[],
-    datas=[(str(ROOT / 'src' / 'web'), 'web'), (str(ROOT / 'assets' / 'app.ico'), '.')],
+    datas=[
+        (str(ROOT / 'src' / 'web'), 'web'),
+        (str(ROOT / 'assets' / 'app.ico'), '.'),
+        (str(PYTUN / 'wintun' / 'bin' / 'amd64' / 'wintun.dll'),
+         'pytun_pmd3/wintun/bin/amd64'),
+        (str(PYTUN / 'wintun' / 'LICENSE.txt'), 'pytun_pmd3/wintun'),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
