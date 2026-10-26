@@ -205,20 +205,6 @@ QPushButton#TextDanger {
 QPushButton#TextDanger:hover {
     color: #7E2B1E;
 }
-QPushButton#DefaultButton {
-    background: #F4EFE2;
-    border: 1px solid #A89C82;
-    color: #46555F;
-    font-size: 12px;
-    padding: 0 10px;
-    min-height: 30px;
-    max-height: 30px;
-}
-QPushButton#DefaultButton:hover {
-    background: #EADFCB;
-    border-color: #46555F;
-    color: #1D2B36;
-}
 QPushButton#DangerStamp {
     background: #F7ECE7;
     border: 1px solid #C08A7E;

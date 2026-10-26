@@ -221,6 +221,7 @@ class MainWindow(QMainWindow):
         self._monitor: DeviceMonitor | None = None
         self._device_state = "absent"
         self._guide_open = False
+        self._guide_dialog: SetupDialog | None = None
         self._poll_timer = QTimer(self)
         self._poll_timer.timeout.connect(self._poll_events)
 
@@ -260,9 +261,13 @@ class MainWindow(QMainWindow):
                 QUrl("https://github.com/peagothedreamer/Elsewhere")
             )
         )
+        self.default_btn = QPushButton("默认位置（浙大紫金港）")
+        self.default_btn.setObjectName("TopGhost")
+        self.default_btn.clicked.connect(self.use_default)
         bar.addWidget(self.device_combo)
         bar.addWidget(self.refresh_btn)
         bar.addWidget(self.help_btn)
+        bar.addWidget(self.default_btn)
         bar.addStretch(1)
 
         credit = QPushButton("peago")
@@ -558,15 +563,11 @@ class MainWindow(QMainWindow):
         cancel_lay = QHBoxLayout(cancel)
         cancel_lay.setContentsMargins(0, 10, 0, 0)
         cancel_lay.setSpacing(8)
-        self.default_btn = QPushButton("默认位置（浙大紫金港）")
-        self.default_btn.setObjectName("DefaultButton")
-        self.default_btn.clicked.connect(self.use_default)
         self.clear_btn = QPushButton("恢复真实位置")
         self.clear_btn.setObjectName("DangerStamp")
         self.clear_btn.setFixedHeight(30)
         self.clear_btn.clicked.connect(self.clear_location)
-        cancel_lay.addWidget(self.default_btn, 0, Qt.AlignmentFlag.AlignVCenter)
-        cancel_lay.addWidget(self._leader(), 1, Qt.AlignmentFlag.AlignVCenter)
+        cancel_lay.addStretch(1)
         cancel_lay.addWidget(self.clear_btn, 0, Qt.AlignmentFlag.AlignVCenter)
         root.addWidget(cancel)
 
@@ -829,11 +830,21 @@ class MainWindow(QMainWindow):
         if self._guide_open or self._device_state == "ready":
             return
         self._guide_open = True
+        # 临时对象会在 exec 返回后被（可能非 GUI 线程的）GC 回收：shiboken 随之
+        # 在错误线程析构 QDialog，二次析构时触发 purecall，进程直接 abort。
+        # 保住引用并交给 WA_DeleteOnClose，让 C++ 对象只在 GUI 线程销毁。
+        dialog = SetupDialog(self._device_state, self)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self._guide_dialog = dialog
+        dialog.destroyed.connect(self._on_guide_destroyed)
         try:
-            SetupDialog(self._device_state, self).exec()
+            dialog.exec()
         finally:
             self._guide_open = False
         self.refresh_devices()
+
+    def _on_guide_destroyed(self, *_args) -> None:
+        self._guide_dialog = None
 
     def _current_device(self) -> Device | None:
         return self.device_combo.currentData()

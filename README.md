@@ -21,7 +21,6 @@
 
 ## 使用前准备
 - Windows 10/11，或 macOS 14+（Apple Silicon）
-- Windows 需先装「Apple 设备」（Microsoft Store）或 iTunes，提供 iPhone 连接驱动；装过 iTunes 可跳过。macOS 自带连接支持，无需安装驱动
 - iPhone：**iOS 17+**，开启「设置 → 隐私与安全性 → 开发者模式」并重启确认
 - 数据线连接并解锁 iPhone；首次连接时在手机上点「信任」
 - 地图瓦片与地点搜索需要联网（注入与路线播放离线可用）

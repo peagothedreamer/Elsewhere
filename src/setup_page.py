@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 )
 
 import theme_c
+from apple_driver import amds_installed, install_apple_driver, usbmux_ready
 from inject import DeviceLockedError, InjectionError, _run_sync, list_devices
 
 # 状态 → 页面。缺省（error / locked）留在当前页。
@@ -102,20 +103,10 @@ QPushButton#GuideLater:hover {{
 
 
 def apple_driver_missing() -> bool:
-    """Windows 上是否缺 Apple 设备驱动（iTunes / Microsoft Store 的「Apple 设备」附带）。"""
+    """Windows 上是否缺 Apple 设备驱动（AMDS 未注册且没有可用的 usbmux）。"""
     if sys.platform != "win32":
         return False
-    try:
-        import winreg
-
-        key = winreg.OpenKey(
-            winreg.HKEY_LOCAL_MACHINE,
-            r"SYSTEM\CurrentControlSet\Services\Apple Mobile Device Service",
-        )
-        winreg.CloseKey(key)
-        return False
-    except OSError:
-        return True
+    return not (amds_installed() or usbmux_ready())
 
 
 def probe_device() -> tuple[str, str]:
@@ -205,6 +196,7 @@ class SetupDialog(QDialog):
         self._shown = False
         self._closed = False
         self._probing = False
+        self._installing = False
         self._pairing = False
         self._pair_tried = False
         self._revealing = False
@@ -262,7 +254,7 @@ class SetupDialog(QDialog):
         start = {"absent": 0, "driver": 0, "locked": 1, "trust": 1, "devmode": 2, "ready": 3}
         self._set_page(start.get(state, 0))
         self._set_status(*{
-            "driver": ("未检测到 Apple 设备驱动，先按第 1 步安装。", "error"),
+            "driver": ("未检测到 Apple 设备驱动，点「自动安装驱动」。", "error"),
             "locked": ("iPhone 已锁定，解锁后自动继续。", "busy"),
             "trust": ("等待手机信任这台电脑…", "busy"),
             "devmode": ("开发者模式未开启，打开后自动继续。", "busy"),
@@ -274,8 +266,8 @@ class SetupDialog(QDialog):
     def _build_pages(self) -> None:
         if sys.platform == "win32":
             connect_hint = (
-                "数据线连接 iPhone 与电脑，保持解锁。Windows 需先安装「Apple 设备」"
-                "（Microsoft Store）或 iTunes，用于提供连接驱动。"
+                "数据线连接 iPhone 与电脑，保持解锁。缺少驱动时点下方「自动安装驱动」"
+                "（下载 Apple Mobile Device Support）；也可以手动安装 iTunes 或「Apple 设备」。"
             )
         else:
             connect_hint = "数据线连接 iPhone 与电脑，保持解锁。macOS 自带连接支持，无需安装驱动。"
@@ -348,11 +340,19 @@ class SetupDialog(QDialog):
         self._page = index
         self.stack.setCurrentIndex(index)
         self.counter.setText(COUNTERS[index])
-        self.action_btn.setText(ACTIONS[index])
+        self._refresh_action_text()
         if index == 1 and self._shown and self._state == "trust":
             self._maybe_pair()
         elif index == 2 and self._shown and self._state == "devmode":
             self._maybe_reveal()
+
+    def _refresh_action_text(self) -> None:
+        if self._installing:
+            return
+        text = ACTIONS[self._page]
+        if self._page == 0 and self._state == "driver":
+            text = "自动安装驱动"
+        self.action_btn.setText(text)
 
     def _set_status(self, text: str, tone: str = "muted") -> None:
         color = {
@@ -364,8 +364,12 @@ class SetupDialog(QDialog):
         self.status.setStyleSheet(f"color:{color};")
 
     def _on_action(self) -> None:
+        if self._installing:
+            return
         if self._page == 3:
             self.accept()
+        elif self._page == 0 and self._state == "driver":
+            self._install_driver_now()
         elif self._page == 1:
             self._pair_now()
         elif self._page == 2:
@@ -377,6 +381,8 @@ class SetupDialog(QDialog):
     # ---------------- 后台检测 ----------------
     def _tick(self) -> None:
         self._drain()
+        if self._installing:  # 安装期间别再插一轮枚举
+            return
         now = time.monotonic()
         if not self._probing and now - self._last_probe >= self._probe_interval:
             self._probe_now()
@@ -390,16 +396,35 @@ class SetupDialog(QDialog):
             if kind == "probe":
                 self._probing = False
                 self._apply_state(*payload)
+                self._refresh_action_text()
             elif kind == "pair":
                 self._pairing = False
                 self.action_btn.setEnabled(True)
-                self.action_btn.setText(ACTIONS[self._page])
+                self._refresh_action_text()
                 ok, message = payload
                 if ok:
                     self._set_status("已配对，正在检测…", "ok")
                     self._last_probe = 0.0
                 else:
                     self._set_status(f"配对失败：{_pair_error(message)}", "error")
+            elif kind == "install_progress":
+                pct = payload
+                self._set_status(
+                    f"正在下载驱动… {pct}%" if pct >= 0 else "正在下载驱动…", "busy"
+                )
+            elif kind == "install_done":
+                self._installing = False
+                ok, message = payload
+                self.action_btn.setEnabled(True)
+                if ok:
+                    self._state = "absent"  # 防止检测结果回来前再点一次安装
+                    self._set_status("驱动已安装，正在检测…", "ok")
+                    self._last_probe = 0.0
+                    self._probe_now()
+                    self._refresh_action_text()
+                else:
+                    self._set_status(f"安装失败：{message}", "error")
+                    self._refresh_action_text()
 
     def _apply_state(self, state: str, detail: str) -> None:
         self._state = state
@@ -408,7 +433,7 @@ class SetupDialog(QDialog):
             return
         if state == "driver":
             self._set_page(0)
-            self._set_status("未检测到 Apple 设备驱动，先按第 1 步安装。", "error")
+            self._set_status("未检测到 Apple 设备驱动，点「自动安装驱动」。", "error")
             return
         if state == "locked":
             if self._page < 1:
@@ -452,6 +477,26 @@ class SetupDialog(QDialog):
         except Exception as exc:
             result = ("error", str(exc))
         self._q.put(("probe", result))
+
+    # ---------------- 自动安装 Apple 驱动 ----------------
+    def _install_driver_now(self) -> None:
+        if self._installing or self._closed:
+            return
+        self._installing = True
+        self.action_btn.setEnabled(False)
+        self.action_btn.setText("正在安装…")
+        self._set_status("正在下载 Apple 驱动…", "busy")
+        threading.Thread(target=self._install_worker, daemon=True).start()
+
+    def _install_worker(self) -> None:
+        def progress(done: int, total: int) -> None:
+            self._q.put(("install_progress", done * 100 // total if total else -1))
+
+        try:
+            install_apple_driver(progress)
+            self._q.put(("install_done", (True, "")))
+        except Exception as exc:
+            self._q.put(("install_done", (False, str(exc))))
 
     # ---------------- 显示开发者模式选项 ----------------
     def _maybe_reveal(self) -> None:
