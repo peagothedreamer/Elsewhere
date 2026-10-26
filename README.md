@@ -1,4 +1,4 @@
-# Elsewhere — iPhone 虚拟定位工具
+# <img src="app.png" width="32" height="32" alt=""> Elsewhere — iPhone 虚拟定位工具
 
 桌面端虚拟定位工具。
 
