@@ -3,14 +3,14 @@
 **绝对不是为了校园跑而写的** 桌面端虚拟定位工具。
 
 ## 下载安装
-从 [Releases](https://github.com/peagothedreamer/Elsewhere/releases) 下载：
-
 **Windows 10/11**
-- `Elsewhere-Setup-x.y.z.exe` — 安装版（推荐，装到用户目录，无需管理员）
-- `Elsewhere-x.y.z-portable.zip` — 免安装，解压后运行 `Elsewhere.exe`
+- [下载 Elsewhere-Setup-0.3.0.exe](https://github.com/peagothedreamer/Elsewhere/releases/download/v0.3.0/Elsewhere-Setup-0.3.0.exe) — 安装版（推荐，装到用户目录，无需管理员）
+- [Elsewhere-0.3.0-portable.zip](https://github.com/peagothedreamer/Elsewhere/releases/download/v0.3.0/Elsewhere-0.3.0-portable.zip) — 免安装，解压后运行 `Elsewhere.exe`
 
 **macOS 14+（Apple Silicon）**
-- `Elsewhere-x.y.z-arm64.dmg` — 打开后把 `Elsewhere.app` 拖进「应用程序」
+- [下载 Elsewhere-0.3.0-arm64.dmg](https://github.com/peagothedreamer/Elsewhere/releases/download/v0.3.0/Elsewhere-0.3.0-arm64.dmg) — 打开后把 `Elsewhere.app` 拖进「应用程序」
+
+全部版本见 [Releases](https://github.com/peagothedreamer/Elsewhere/releases)。
 
 应用未签名：
 - Windows 首次运行可能提示「已保护你的电脑」：点「更多信息」→「仍要运行」。
