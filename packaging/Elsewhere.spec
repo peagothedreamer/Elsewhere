@@ -3,6 +3,56 @@ from pathlib import Path
 
 ROOT = Path(SPECPATH).resolve().parent
 
+# pymobiledevice3 的 CLI / WebInspector / 截图功能依赖；本应用不会加载。
+EXCLUDES = [
+    'IPython', 'ipykernel', 'ipywidgets', 'jedi', 'matplotlib', 'matplotlib_inline',
+    'numpy', 'PIL', 'tkinter', '_tkinter', 'zmq', 'tornado', 'traitlets', 'parso',
+]
+
+# 未使用的 Qt addon：DLL 前缀 Qt6Xxx，Python 绑定前缀 QtXxx。
+QT_DROP_STEMS = (
+    '3D', 'Charts', 'DataVisualization', 'Graphs', 'Multimedia', 'Pdf',
+    'Quick3D', 'QuickControls2', 'QuickTemplates2', 'QuickDialogs2',
+    'Location', 'Svg', 'Sql', 'Test', 'Designer', 'Help', 'Bluetooth', 'Nfc',
+    'Sensors', 'SerialPort', 'SerialBus', 'RemoteObjects', 'Scxml',
+    'StateMachine', 'TextToSpeech', 'UiTools', 'WebSockets', 'Xml',
+    'HttpServer', 'Coap', 'Mqtt', 'OpcUa', 'Labs', 'SpatialAudio',
+    'WebEngineQuick', 'QmlLocalStorage', 'QuickNativeStyle', 'QuickTest',
+    'QuickVectorImage',
+)
+
+
+def _drop_qt_binary(name: str) -> bool:
+    n = name.replace('\\', '/')
+    if '/qml/' in n:
+        return True
+    base = n.rsplit('/', 1)[-1]
+    return any(
+        base.startswith('Qt6' + stem) or base.startswith('Qt' + stem)
+        for stem in QT_DROP_STEMS
+    )
+
+
+def _drop_qt_data(name: str) -> bool:
+    n = name.replace('\\', '/')
+    if '/qml/' in n or '/plugins/qmltooling/' in n:
+        return True
+    if '/resources/' in n and ('devtools' in n or '.debug.' in n):
+        return True
+    if '/translations/qtwebengine_locales/' in n:
+        return n.rsplit('/', 1)[-1] not in ('zh-CN.pak', 'en-US.pak')
+    if '/translations/' in n:
+        base = n.rsplit('/', 1)[-1]
+        return not (base.endswith('_zh_CN.qm') or base.endswith('_en.qm'))
+    # 这些插件链接了上面删掉的 Qt6Pdf / Qt6Svg / Qt6SerialPort。
+    return n.endswith((
+        '/imageformats/qpdf.dll',
+        '/imageformats/qsvg.dll',
+        '/iconengines/qsvgicon.dll',
+        '/position/qtposition_nmea.dll',
+    ))
+
+
 a = Analysis(
     [str(ROOT / 'src' / 'main.py')],
     pathex=[str(ROOT / 'src')],
@@ -12,10 +62,14 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=EXCLUDES,
     noarchive=False,
     optimize=0,
 )
+
+a.binaries = [b for b in a.binaries if not _drop_qt_binary(b[0])]
+a.datas = [d for d in a.datas if not _drop_qt_data(d[0])]
+
 pyz = PYZ(a.pure)
 
 exe = EXE(

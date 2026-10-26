@@ -29,4 +29,3 @@ Leaflet 1.9.4 以 BSD-2-Clause 许可随仓库分发（`web/leaflet/`）。
 - 地图瓦片：© OpenStreetMap contributors，数据以 ODbL 提供；
   `tile.openstreetmap.de` 由 FOSSGIS 提供。
 - 地点搜索：Nominatim，© OpenStreetMap contributors。
-- 可选 Mapbox 瓦片：© Mapbox © OpenStreetMap © Maxar，使用需遵守 Mapbox 服务条款。

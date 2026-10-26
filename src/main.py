@@ -1,11 +1,3 @@
-"""Elsewhere — 桌面端 iPhone 虚拟定位工具。
-
-单点定位（M1）+ 路线播放（M2）+ 地图与恢复（M3）：
-- 跳点传送：逐点瞬移 + 冷却
-- 多点路线：沿闭环折线平滑移动 + 速度
-- 地图：OSM 瓦片选点、Nominatim 搜索、路线可视化
-- 断连恢复：自动重连、重注入最后坐标、路线冻结后继续
-"""
 from __future__ import annotations
 
 import queue
@@ -265,8 +257,13 @@ class MainWindow(QMainWindow):
         bar.addWidget(self.help_btn)
         bar.addStretch(1)
 
-        credit = QLabel("peago")
+        credit = QPushButton("peago")
         credit.setObjectName("Credit")
+        credit.setFlat(True)
+        credit.setCursor(Qt.CursorShape.PointingHandCursor)
+        credit.clicked.connect(
+            lambda: QDesktopServices.openUrl(QUrl("https://peagothedreamer.github.io/"))
+        )
         bar.addWidget(credit)
 
         status_box = QWidget()
@@ -330,7 +327,6 @@ class MainWindow(QMainWindow):
 
         self.map = MapView()
         self.map.picked.connect(self._on_map_pick)
-        self.map.tile_failed.connect(self._on_map_tiles_failed)
         layout.addWidget(self.map)
 
         self.search_panel = QWidget(panel)
@@ -351,15 +347,6 @@ class MainWindow(QMainWindow):
         pal.setColor(QPalette.ColorRole.PlaceholderText, QColor(theme_c.MUTED))
         self.search_edit.setPalette(pal)
         search_row.addWidget(self.search_edit, 1)
-
-        self.layer_combo = ChevronCombo()
-        self.layer_combo.setObjectName("LayerCombo")
-        self.layer_combo.addItem("街道", "streets")
-        self.layer_combo.addItem("卫星", "satellite")
-        self.layer_combo.currentIndexChanged.connect(self._on_layer_changed)
-        self.layer_combo.setVisible(self.map.has_mapbox)
-        self.layer_combo.setFixedWidth(64)
-        search_row.addWidget(self.layer_combo)
         sp.addLayout(search_row)
 
         self.search_status = QLabel("")
@@ -388,8 +375,6 @@ class MainWindow(QMainWindow):
         self.geocoder = Geocoder(self)
         self.geocoder.results.connect(self._on_search_results)
         self.geocoder.error.connect(self._on_search_error)
-        if not self.map.has_mapbox:
-            self.log.append("未配置 Mapbox token，使用 OSM 瓦片（见 README）。")
         return panel
 
     def _sync_search_panel(self) -> None:
@@ -477,15 +462,6 @@ class MainWindow(QMainWindow):
             self.search_panel.raise_()
         if hasattr(self, "tabs"):
             self._on_tab_changed(self.tabs.currentIndex())
-
-    def _on_layer_changed(self) -> None:
-        kind = self.layer_combo.currentData()
-        if kind:
-            self.map.set_base(kind)
-
-    def _on_map_tiles_failed(self) -> None:
-        self.layer_combo.setVisible(False)
-        self.log.append("Mapbox 瓦片加载失败，已回退到 OSM")
 
     # ---------------- 地图 / 搜索 ----------------
     def _search_place(self) -> None:

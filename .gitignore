@@ -3,8 +3,6 @@ __pycache__/
 # 用户预设，不随代码分发
 routes.json
 routes.json.tmp
-# 用户自己的 Mapbox token
-mapbox_token.txt
 # 内部需求文档，不随代码分发
 Elsewhere_PRD.md
 # 构建产物

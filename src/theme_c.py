@@ -42,10 +42,16 @@ QLabel#StatusText {
     color: #F1EBDC;
     font-size: 12px;
 }
-QLabel#Credit {
+QPushButton#Credit {
+    background: transparent;
+    border: none;
     color: #A7A18F;
     font-size: 11px;
     letter-spacing: 2px;
+    padding: 0 2px;
+}
+QPushButton#Credit:hover {
+    color: #F1EBDC;
 }
 QComboBox#DeviceCombo {
     background: transparent;
@@ -469,25 +475,6 @@ QListWidget#SearchResults::item:selected {
     background: #E7DCC6;
     color: #A32C5E;
 }
-QComboBox#LayerCombo {
-    background: #F4EFE2;
-    border: 1px solid #1D2B36;
-    color: #1D2B36;
-    font-size: 12px;
-    min-height: 30px;
-    max-height: 30px;
-    padding: 0 20px 0 8px;
-}
-QComboBox#LayerCombo::drop-down {
-    width: 18px;
-    border: none;
-}
-QComboBox#LayerCombo::down-arrow {
-    image: none;
-    width: 0;
-    height: 0;
-}
-
 /* ---------- combo popups / scrollbars ---------- */
 QComboBox QAbstractItemView {
     background: #F4EFE2;

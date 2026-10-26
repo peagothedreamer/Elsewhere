@@ -16,6 +16,7 @@ DefaultDirName={localappdata}\Programs\Elsewhere
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
+UsePreviousAppDir=no
 OutputDir=..\..\dist
 OutputBaseFilename=Elsewhere-Setup-{#MyAppVersion}
 Compression=lzma2/max

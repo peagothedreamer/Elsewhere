@@ -1,6 +1,6 @@
 """用户数据目录：源码运行和安装版统一放 %APPDATA%\\Elsewhere。
 
-程序目录可能不可写（Program Files），预设与 token 都放用户目录；
+程序目录可能不可写（Program Files），预设放用户目录；
 首次运行时把旧版放在源码目录的文件迁移过去。
 """
 from __future__ import annotations

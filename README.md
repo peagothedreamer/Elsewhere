@@ -16,6 +16,7 @@
 - iPhone：**iOS 17+**，开启「设置 → 隐私与安全性 → 开发者模式」并重启确认
 - 数据线连接并解锁 iPhone；首次连接时在手机上点「信任」
 - 地图瓦片与地点搜索需要联网（注入与路线播放离线可用）
+- 关闭vpn
 
 ## 从源码运行
 ```bash
@@ -23,7 +24,7 @@ python -m pip install -r requirements.txt
 python src/main.py
 ```
 
-需要 Python 3.11+。用户数据（预设、Mapbox token）存放在 `%APPDATA%\Elsewhere\`。
+需要 Python 3.11+。用户预设存放在 `%APPDATA%\Elsewhere\`。
 
 顶部选择设备；未检测到真机时自动回退到 Mock（离线调试）。
 

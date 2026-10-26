@@ -49,18 +49,10 @@ const OSM_URL = 'https://tile.openstreetmap.de/{z}/{x}/{y}.png';
 const map = L.map('map', { zoomControl: false }).setView(DEFAULT_VIEW, 15);
 L.control.zoom({ position: 'bottomright' }).addTo(map);
 map.attributionControl.setPosition('bottomleft');
-let baseLayer = null;
-
-function setBase(url, attribution, maxZoom) {
-  if (baseLayer) map.removeLayer(baseLayer);
-  baseLayer = L.tileLayer(url, {
-    maxZoom: maxZoom || 19,
-    attribution: attribution || '&copy; OpenStreetMap contributors',
-  }).addTo(map);
-  baseLayer.on('tileerror', () => { if (bridge) bridge.tile_error(); });
-}
-
-setBase(OSM_URL, '&copy; OpenStreetMap contributors', 19);
+L.tileLayer(OSM_URL, {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap contributors',
+}).addTo(map);
 
 let bridge = null;
 let routeLayer = null;
