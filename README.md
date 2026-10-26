@@ -5,14 +5,23 @@
 ## 下载安装
 从 [Releases](https://github.com/peagothedreamer/Elsewhere/releases) 下载：
 
+**Windows 10/11**
 - `Elsewhere-Setup-x.y.z.exe` — 安装版（推荐，装到用户目录，无需管理员）
 - `Elsewhere-x.y.z-portable.zip` — 免安装，解压后运行 `Elsewhere.exe`
 
-应用未签名，Windows 首次运行可能提示「已保护你的电脑」：点「更多信息」→「仍要运行」。
+**macOS 14+（Apple Silicon）**
+- `Elsewhere-x.y.z-arm64.dmg` — 打开后把 `Elsewhere.app` 拖进「应用程序」
+
+应用未签名：
+- Windows 首次运行可能提示「已保护你的电脑」：点「更多信息」→「仍要运行」。
+- macOS 会提示「无法验证开发者」。macOS 14 可右键点 app →「打开」；macOS 15 起需到「系统设置 → 隐私与安全性」→「仍要打开」，或执行：
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/Elsewhere.app
+  ```
 
 ## 使用前准备
-- Windows 10/11
-- 先装「Apple 设备」（Microsoft Store）或 iTunes，提供 iPhone 连接驱动；装过 iTunes 可跳过
+- Windows 10/11，或 macOS 14+（Apple Silicon）
+- Windows 需先装「Apple 设备」（Microsoft Store）或 iTunes，提供 iPhone 连接驱动；装过 iTunes 可跳过。macOS 自带连接支持，无需安装驱动
 - iPhone：**iOS 17+**，开启「设置 → 隐私与安全性 → 开发者模式」并重启确认
 - 数据线连接并解锁 iPhone；首次连接时在手机上点「信任」
 - 地图瓦片与地点搜索需要联网（注入与路线播放离线可用）
@@ -24,7 +33,11 @@ python -m pip install -r requirements.txt
 python src/main.py
 ```
 
-需要 Python 3.11+。用户预设存放在 `%APPDATA%\Elsewhere\`。
+macOS 上把 `python` 换成 `python3`。需要 Python 3.11+。
+
+用户预设存放位置：
+- Windows：`%APPDATA%\Elsewhere\`
+- macOS：`~/Library/Application Support/Elsewhere/`
 
 顶部选择设备；未检测到真机时自动回退到 Mock（离线调试）。
 
@@ -47,7 +60,7 @@ python src/main.py
    - **多点路线（平滑）**：沿闭环按「速度」(m/s) 平滑移动。
 3. 设置循环次数。
 4. 「开始 / 暂停 / 停止」；跳点模式可点「下一个」手动跳；播放中的位置以绿色圆点显示在地图上。
-5. 预设：保存 / 加载 / 删除 / 重命名，存于 `%APPDATA%\Elsewhere\routes.json`。
+5. 预设：保存 / 加载 / 删除 / 重命名，存于用户数据目录下的 `routes.json`。
 
 点「开始」或「保存」预设时路线自动首尾闭合，停止后恢复开口显示。
 

@@ -22,11 +22,16 @@ TONE_OK = "#7FB599"
 TONE_BUSY = "#C9A44C"
 TONE_ERROR = "#D06A56"
 
+# 字体栈：Windows 字体在前，macOS 上按顺序回退到系统自带字体。
+UI_FONTS = ("Bahnschrift", "Helvetica Neue", "DengXian", "PingFang SC", "Microsoft YaHei UI")
+BODY_FONTS = ("DengXian", "PingFang SC")
+SERIF_FONTS = ("Cambria", "Georgia")
+
 
 QSS = """
 QWidget {
     color: #1D2B36;
-    font-family: "Bahnschrift", "DengXian", "Microsoft YaHei UI";
+    font-family: "Bahnschrift", "Helvetica Neue", "DengXian", "PingFang SC", "Microsoft YaHei UI";
     font-size: 13px;
 }
 QMainWindow, QWidget#Central {
@@ -127,7 +132,7 @@ QLineEdit#Coord {
     border: none;
     border-bottom: 1px solid #A89C82;
     color: #1D2B36;
-    font-family: "Cambria";
+    font-family: "Cambria", "Georgia";
     font-size: 20px;
     padding: 0 2px;
     min-height: 38px;
@@ -137,7 +142,7 @@ QLineEdit#CoordSmall {
     border: none;
     border-bottom: 1px solid #A89C82;
     color: #1D2B36;
-    font-family: "Cambria";
+    font-family: "Cambria", "Georgia";
     font-size: 16px;
     padding: 0 2px;
     min-height: 32px;
@@ -252,7 +257,7 @@ QLabel#TotalLabel {
 }
 QLabel#TotalValue {
     color: #1D2B36;
-    font-family: "Cambria";
+    font-family: "Cambria", "Georgia";
     font-size: 18px;
     font-weight: 600;
 }
@@ -267,7 +272,7 @@ QComboBox#SpecCombo {
     background: transparent;
     border: none;
     color: #1D2B36;
-    font-family: "Cambria";
+    font-family: "Cambria", "Georgia";
     font-size: 15px;
     padding: 0 18px 0 0;
     min-height: 26px;
@@ -285,7 +290,7 @@ QDoubleSpinBox#SpecSpin, QSpinBox#SpecSpin {
     background: transparent;
     border: none;
     color: #1D2B36;
-    font-family: "Cambria";
+    font-family: "Cambria", "Georgia";
     font-size: 15px;
     padding: 0 15px 0 0;
     min-height: 26px;

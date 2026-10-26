@@ -41,7 +41,7 @@ QLabel#GuideHead {{
 }}
 QLabel#GuideStep {{
     color: {theme_c.MAGENTA};
-    font-family: "Cambria";
+    font-family: "Cambria", "Georgia";
     font-size: 12px;
 }}
 QLabel#GuideTitle {{
@@ -272,11 +272,17 @@ class SetupDialog(QDialog):
 
     # ---------------- 页面 ----------------
     def _build_pages(self) -> None:
+        if sys.platform == "win32":
+            connect_hint = (
+                "数据线连接 iPhone 与电脑，保持解锁。Windows 需先安装「Apple 设备」"
+                "（Microsoft Store）或 iTunes，用于提供连接驱动。"
+            )
+        else:
+            connect_hint = "数据线连接 iPhone 与电脑，保持解锁。macOS 自带连接支持，无需安装驱动。"
         specs = [
             (
                 "连接电脑",
-                "数据线连接 iPhone 与电脑，保持解锁。Windows 需先安装「Apple 设备」"
-                "（Microsoft Store）或 iTunes，用于提供连接驱动。",
+                connect_hint,
                 None,
             ),
             (

@@ -73,6 +73,14 @@ from route import (
 from setup_page import SetupDialog
 
 
+def _font(families: tuple[str, ...], size: int) -> QFont:
+    """按字体栈建字体：首个可用字体生效，缺字由系统回退。"""
+    font = QFont()
+    font.setFamilies(list(families))
+    font.setPointSize(size)
+    return font
+
+
 class ChevronCombo(QComboBox):
     """无边框下拉框，用自绘小折线替代原生箭头。"""
 
@@ -99,9 +107,9 @@ class WaypointDelegate(QStyledItemDelegate):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.coord_font = QFont("Cambria", 11)
-        self.node_font = QFont("Cambria", 8)
-        self.dist_font = QFont("DengXian", 9)
+        self.coord_font = _font(theme_c.SERIF_FONTS, 11)
+        self.node_font = _font(theme_c.SERIF_FONTS, 8)
+        self.dist_font = _font(theme_c.BODY_FONTS, 9)
 
     def sizeHint(self, option, index) -> QSize:
         return QSize(0, self.ROW_HEIGHT)
@@ -298,7 +306,7 @@ class MainWindow(QMainWindow):
         rail_lay.setSpacing(0)
 
         self._log_doc = QTextDocument(self)
-        self._log_doc.setDefaultFont(QFont("DengXian", 9))
+        self._log_doc.setDefaultFont(_font(theme_c.BODY_FONTS, 9))
 
         self.tabs = QTabWidget()
         self.tabs.setObjectName("Tabs")
@@ -1298,12 +1306,13 @@ def main() -> int:
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
-    app.setFont(QFont("Bahnschrift", 9))
+    app.setFont(_font(theme_c.UI_FONTS, 9))
     app.setStyleSheet(theme_c.QSS)
+    icon_name = "app.icns" if sys.platform == "darwin" else "app.ico"
     if getattr(sys, "_MEIPASS", None):
-        icon_path = Path(sys._MEIPASS) / "app.ico"
+        icon_path = Path(sys._MEIPASS) / icon_name
     else:
-        icon_path = Path(__file__).resolve().parent.parent / "assets" / "app.ico"
+        icon_path = Path(__file__).resolve().parent.parent / "assets" / icon_name
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
     win = MainWindow()

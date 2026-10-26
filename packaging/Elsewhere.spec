@@ -1,14 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
-from pathlib import Path
 import importlib.util
+import os
+import sys
+from pathlib import Path
 
 ROOT = Path(SPECPATH).resolve().parent
-
-# pytun_pmd3 在 import 时通过 ctypes 加载 wintun.dll；PyInstaller 不会自动收集它。
-_pytun = importlib.util.find_spec('pytun_pmd3')
-if _pytun is None or _pytun.origin is None:
-    raise SystemExit('pytun_pmd3 is not installed; cannot package tunnel support')
-PYTUN = Path(_pytun.origin).parent
+IS_WIN = sys.platform == "win32"
+IS_MAC = sys.platform == "darwin"
+VERSION = os.environ.get("ELSEWHERE_VERSION", "0.0.0").lstrip("v")
 
 # pymobiledevice3 的 CLI / WebInspector / 截图功能依赖；本应用不会加载。
 EXCLUDES = [
@@ -57,20 +56,40 @@ def _drop_qt_data(name: str) -> bool:
         '/imageformats/qsvg.dll',
         '/iconengines/qsvgicon.dll',
         '/position/qtposition_nmea.dll',
+        '/imageformats/libqpdf.dylib',
+        '/imageformats/libqsvg.dylib',
+        '/iconengines/libqsvgicon.dylib',
+        '/position/libqtposition_nmea.dylib',
     ))
+
+
+datas = [(str(ROOT / 'src' / 'web'), 'web')]
+
+if IS_WIN:
+    # pytun_pmd3 在 import 时通过 ctypes 加载 wintun.dll；PyInstaller 不会自动收集它。
+    _pytun = importlib.util.find_spec('pytun_pmd3')
+    if _pytun is None or _pytun.origin is None:
+        raise SystemExit('pytun_pmd3 is not installed; cannot package tunnel support')
+    PYTUN = Path(_pytun.origin).parent
+    ICON = str(ROOT / 'assets' / 'app.ico')
+    datas += [
+        (ICON, '.'),
+        (str(PYTUN / 'wintun' / 'bin' / 'amd64' / 'wintun.dll'),
+         'pytun_pmd3/wintun/bin/amd64'),
+        (str(PYTUN / 'wintun' / 'LICENSE.txt'), 'pytun_pmd3/wintun'),
+    ]
+elif IS_MAC:
+    ICON = str(ROOT / 'assets' / 'app.icns')
+    datas.append((ICON, '.'))
+else:
+    ICON = None
 
 
 a = Analysis(
     [str(ROOT / 'src' / 'main.py')],
     pathex=[str(ROOT / 'src')],
     binaries=[],
-    datas=[
-        (str(ROOT / 'src' / 'web'), 'web'),
-        (str(ROOT / 'assets' / 'app.ico'), '.'),
-        (str(PYTUN / 'wintun' / 'bin' / 'amd64' / 'wintun.dll'),
-         'pytun_pmd3/wintun/bin/amd64'),
-        (str(PYTUN / 'wintun' / 'LICENSE.txt'), 'pytun_pmd3/wintun'),
-    ],
+    datas=datas,
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -98,7 +117,7 @@ exe = EXE(
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
-    icon=str(ROOT / 'assets' / 'app.ico'),
+    icon=ICON,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
@@ -112,3 +131,19 @@ coll = COLLECT(
     upx_exclude=[],
     name='Elsewhere',
 )
+
+if IS_MAC:
+    app = BUNDLE(
+        coll,
+        name='Elsewhere.app',
+        icon=ICON,
+        bundle_identifier='io.github.peagothedreamer.elsewhere',
+        info_plist={
+            'CFBundleDisplayName': 'Elsewhere',
+            'CFBundleShortVersionString': VERSION,
+            'CFBundleVersion': VERSION,
+            'LSMinimumSystemVersion': '14.0',
+            'NSHighResolutionCapable': True,
+            'LSApplicationCategoryType': 'public.app-category.utilities',
+        },
+    )
