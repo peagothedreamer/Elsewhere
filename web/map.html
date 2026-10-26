@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>地图</title>
+<link rel="stylesheet" href="leaflet/leaflet.css">
+<style>
+  html, body, #map { height: 100%; margin: 0; background: #E9E5D6; }
+  .leaflet-tile-pane {
+    filter: sepia(.42) saturate(.52) contrast(.92) brightness(1.06);
+  }
+  .pt {
+    display: flex; align-items: center; justify-content: center;
+    background: #F1EBDC; color: #1D2B36; border: 1.5px solid #1D2B36; border-radius: 50%;
+    font: 600 10px/1 Cambria, Georgia, serif;
+    box-shadow: none;
+  }
+  .leaflet-control-zoom {
+    border: 1px solid #1D2B36 !important;
+    border-radius: 1px !important;
+    box-shadow: none !important;
+  }
+  .leaflet-control-zoom a {
+    width: 26px; height: 26px; line-height: 26px;
+    background: #F4EFE2; color: #1D2B36;
+    border-bottom: 1px dashed #C9BFA8;
+    font: 400 14px Cambria, Georgia, serif;
+  }
+  .leaflet-control-zoom a:last-child { border-bottom: 0; }
+  .leaflet-control-zoom a:hover { background: #EADFCB; color: #1D2B36; }
+  .leaflet-control-attribution {
+    background: rgba(244,239,226,.85) !important;
+    color: #7C7868 !important;
+    font: 9px "Segoe UI", "Microsoft YaHei UI", sans-serif;
+  }
+  .leaflet-control-attribution a { color: #46555F !important; }
+  .leaflet-container { font-family: "Bahnschrift", "Microsoft YaHei UI", sans-serif; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script src="leaflet/leaflet.js"></script>
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+const DEFAULT_VIEW = [30.308270, 120.078263];
+// openstreetmap.org 的主瓦片站在中国大陆常被阻断，用 FOSSGIS 的 OSM 瓦片站。
+const OSM_URL = 'https://tile.openstreetmap.de/{z}/{x}/{y}.png';
+
+const map = L.map('map', { zoomControl: false }).setView(DEFAULT_VIEW, 15);
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+map.attributionControl.setPosition('bottomleft');
+let baseLayer = null;
+
+function setBase(url, attribution, maxZoom) {
+  if (baseLayer) map.removeLayer(baseLayer);
+  baseLayer = L.tileLayer(url, {
+    maxZoom: maxZoom || 19,
+    attribution: attribution || '&copy; OpenStreetMap contributors',
+  }).addTo(map);
+  baseLayer.on('tileerror', () => { if (bridge) bridge.tile_error(); });
+}
+
+setBase(OSM_URL, '&copy; OpenStreetMap contributors', 19);
+
+let bridge = null;
+let routeLayer = null;
+let pointLayer = null;
+let picked = null;
+let current = null;
+
+map.on('click', e => {
+  if (bridge) bridge.pick(e.latlng.lat, e.latlng.lng);
+});
+
+function init(lat, lon, zoom) {
+  map.setView([lat, lon], zoom || 15);
+}
+
+function setRoute(pts, closed) {
+  if (pointLayer) { map.removeLayer(pointLayer); pointLayer = null; }
+  if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+  if (!pts || pts.length === 0) return;
+
+  pointLayer = L.layerGroup();
+  pts.forEach((p, i) => {
+    L.marker(p, {
+      icon: L.divIcon({
+        className: 'pt',
+        html: '<span>' + (i + 1) + '</span>',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      }),
+    }).addTo(pointLayer);
+  });
+  pointLayer.addTo(map);
+
+  if (pts.length > 1) {
+    const line = (closed && pts.length > 2) ? pts.concat([pts[0]]) : pts;
+    routeLayer = L.polyline(line, {
+      color: '#A32C5E', weight: 2.4, opacity: 1, dashArray: '7 5',
+    }).addTo(map);
+    map.fitBounds(routeLayer.getBounds(), { padding: [32, 32] });
+  } else {
+    map.setView(pts[0]);
+  }
+}
+
+function setPicked(lat, lon) {
+  if (picked) map.removeLayer(picked);
+  picked = L.circleMarker([lat, lon], {
+    radius: 8, color: '#A32C5E', weight: 2, fillColor: '#F1EBDC', fillOpacity: 1,
+  }).addTo(map);
+}
+
+function setCurrent(lat, lon) {
+  if (current) { current.setLatLng([lat, lon]); return; }
+  current = L.circleMarker([lat, lon], {
+    radius: 6, color: '#F1EBDC', weight: 2, fillColor: '#2E6B4C', fillOpacity: 1,
+  }).addTo(map);
+}
+
+function clearCurrent() {
+  if (current) { map.removeLayer(current); current = null; }
+}
+
+function flyTo(lat, lon, zoom) {
+  map.flyTo([lat, lon], zoom || 16);
+}
+
+new QWebChannel(qt.webChannelTransport, ch => {
+  bridge = ch.objects.bridge;
+  bridge.on_ready();
+});
+</script>
+</body>
+</html>
