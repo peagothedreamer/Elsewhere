@@ -1,6 +1,6 @@
 # <img src="app.png" width="32" height="32" alt=""> Elsewhere — iPhone 虚拟定位工具
 
-桌面端虚拟定位工具。
+**绝对不是为了校园跑而写的** 桌面端虚拟定位工具。
 
 ## 下载安装
 从 [Releases](https://github.com/peagothedreamer/Elsewhere/releases) 下载：
