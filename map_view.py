@@ -11,6 +11,7 @@ from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from inject import DEFAULT_LOCATION, Coordinate
+from paths import user_file
 
 MAP_HTML = Path(__file__).resolve().parent / "web" / "map.html"
 USER_AGENT = "Elsewhere/0.1 (iOS location testing tool)"
@@ -25,11 +26,13 @@ MAPBOX_ATTRIBUTION = {
     "streets": "© Mapbox © OpenStreetMap",
     "satellite": "© Mapbox © Maxar",
 }
-TOKEN_FILE = Path(__file__).resolve().parent / "mapbox_token.txt"
+TOKEN_FILE = user_file(
+    "mapbox_token.txt", legacy=Path(__file__).resolve().parent / "mapbox_token.txt"
+)
 
 
 def mapbox_token() -> str:
-    """token 从环境变量 MAPBOX_TOKEN 或同目录 mapbox_token.txt 读取（不写进代码）。"""
+    """token 从环境变量 MAPBOX_TOKEN 或用户数据目录的 mapbox_token.txt 读取（不写进代码）。"""
     token = os.environ.get("MAPBOX_TOKEN", "").strip()
     if token:
         return token

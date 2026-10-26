@@ -1,28 +1,29 @@
 # Elsewhere — iPhone 虚拟定位工具
 
-桌面端虚拟定位工具。当前进度：**M1 + M2 + M3**（单点定位；路线播放：跳点/平滑、冷却、循环、预设；地图选点/搜索、路线可视化、断连恢复）。
-完整需求与后续里程碑见 [Elsewhere_PRD.md](Elsewhere_PRD.md)。
+桌面端虚拟定位工具。
 
-## 环境要求
-- Windows（代码保持可移植）
-- Python 3.11+
-- iPhone：**iOS 17+**，已开启开发者模式
+## 下载安装
+从 [Releases](https://github.com/peagothedreamer/Elsewhere/releases) 下载：
+
+- `Elsewhere-Setup-x.y.z.exe` — 安装版（推荐，装到用户目录，无需管理员）
+- `Elsewhere-x.y.z-portable.zip` — 免安装，解压后运行 `Elsewhere.exe`
+
+应用未签名，Windows 首次运行可能提示「已保护你的电脑」：点「更多信息」→「仍要运行」。
+
+## 使用前准备
+- Windows 10/11
+- 先装「Apple 设备」（Microsoft Store）或 iTunes，提供 iPhone 连接驱动；装过 iTunes 可跳过
+- iPhone：**iOS 17+**，开启「设置 → 隐私与安全性 → 开发者模式」并重启确认
+- 数据线连接并解锁 iPhone；首次连接时在手机上点「信任」
 - 地图瓦片与地点搜索需要联网（注入与路线播放离线可用）
 
-## 安装
+## 从源码运行
 ```bash
 python -m pip install -r requirements.txt
-```
-
-首次连接时，应用会检测设备状态并自动弹出分步引导（连接 → 解锁并信任 → 开发者模式）。手动配对只需一次：
-```bash
-pymobiledevice3 lockdown pair
-```
-
-## 运行
-```bash
 python main.py
 ```
+
+需要 Python 3.11+。用户数据（预设、Mapbox token）存放在 `%APPDATA%\Elsewhere\`。
 
 顶部选择设备；未检测到真机时自动回退到 Mock（离线调试）。
 
@@ -32,36 +33,31 @@ python main.py
 - **路线**页签下点地图 / 选搜索结果 → 填入选点输入框，再点「添加点」。
 - 顶部搜索框回车，用 Nominatim 搜地名，最多 5 条结果点选。
 
-Leaflet 已随仓库本地分发（`web/leaflet/`），搜索来自 Nominatim（无需 Key）。
-
 瓦片：
-- 默认用 OpenStreetMap（FOSSGIS 的 `tile.openstreetmap.de`，无需 Key）。
-- 要用 Mapbox（街道 `streets-v11` / 卫星 `satellite-v11`），把 public token 放进同目录 `mapbox_token.txt`，或设环境变量 `MAPBOX_TOKEN`。启动后搜索框右侧会出现「街道 / 卫星」切换。
-- Mapbox 瓦片加载失败会自动回退到 OSM，token 不会写进代码或仓库（`mapbox_token.txt` 已在 `.gitignore`）。
+- 使用 OpenStreetMap（FOSSGIS 的 `tile.openstreetmap.de`，无需 Key）。
 
 ### 单点
 输入经纬度（默认浙大紫金港）→「设为模拟位置」；「恢复真实位置」还原。注入在后台线程执行，界面不会卡住。
 
 ### 路线
-1. 在「路线」页输入经纬度，逐个「添加点」；地图上实时显示折线与编号点（编辑时为开口折线）。
+1. 在地图上点击或在「路线」页输入经纬度，逐个「添加点」；地图上实时显示折线与编号点（编辑时为开口折线）。
 2. 选模式（默认多点平滑）：
    - **跳点传送（瞬移）**：逐点瞬移，点间按「冷却」等待。
    - **多点路线（平滑）**：沿闭环按「速度」(m/s) 平滑移动。
-3. 设循环次数（1..N / 无限；快捷键 3/5/10）。
+3. 设置循环次数。
 4. 「开始 / 暂停 / 停止」；跳点模式可点「下一个」手动跳；播放中的位置以绿色圆点显示在地图上。
-5. 预设：保存 / 加载 / 删除 / 重命名，存于同目录 `routes.json`。
+5. 预设：保存 / 加载 / 删除 / 重命名，存于 `%APPDATA%\Elsewhere\routes.json`。
 
-编辑时折线保持开口；点「开始」或「保存」预设时才首尾闭合，停止后恢复开口显示。路线播放本身始终是闭环。
+点「开始」或「保存」预设时路线自动首尾闭合，停止后恢复开口显示。
 
 ### 断连恢复
 每 2 秒检测设备是否仍在。断开时状态栏提示「已断开，重连中…」，路线进度冻结；设备回来后自动重建隧道、重新注入最后坐标，路线从冻结处继续。空闲状态下同样会自动恢复模拟位置。
 
-## 自测
-```bash
-python test_core.py
-```
 
 ## 当前范围
 - 注入走 iOS 17+ DVT / SimulateLocation（pymobiledevice3 + RSD 隧道）。
 - 地图为在线 OSM 瓦片（本地缓存由 QtWebEngine 负责），无离线瓦片包。
 - 不持久化模拟位置：重启应用后不会自动注入。
+
+## 许可证
+GPL-3.0，见 [LICENSE](LICENSE)；第三方组件许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

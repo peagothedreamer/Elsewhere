@@ -1,2 +1,2 @@
-pymobiledevice3>=11.44
-PySide6>=6.12
+pymobiledevice3==11.44.0
+PySide6==6.12.0

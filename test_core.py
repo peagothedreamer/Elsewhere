@@ -4,6 +4,7 @@ import queue
 import tempfile
 import time
 
+import paths
 from inject import Coordinate, Device, InjectionError, MockDevice, parse_coordinate
 from route import (
     MODE_SMOOTH,
@@ -221,6 +222,24 @@ def test_search_parse() -> None:
     assert parse_places(b"{not json") == []
 
 
+def test_user_file_migration() -> None:
+    """旧版放在源码目录的预设，首次运行复制到用户数据目录；已有文件不覆盖。"""
+    old_dir = paths.APP_DIR
+    with tempfile.TemporaryDirectory() as td:
+        paths.APP_DIR = pathlib.Path(td) / "appdata"
+        legacy = pathlib.Path(td) / "routes.json"
+        legacy.write_text("legacy", encoding="utf-8")
+        try:
+            target = paths.user_file("routes.json", legacy=legacy)
+            assert target.read_text(encoding="utf-8") == "legacy"
+
+            target.write_text("new", encoding="utf-8")
+            paths.user_file("routes.json", legacy=legacy)
+            assert target.read_text(encoding="utf-8") == "new"
+        finally:
+            paths.APP_DIR = old_dir
+
+
 if __name__ == "__main__":
     test_parse_coordinate()
     test_mock_device()
@@ -231,4 +250,5 @@ if __name__ == "__main__":
     test_smooth_runner()
     test_runner_survives_disconnect()
     test_search_parse()
+    test_user_file_migration()
     print("OK")

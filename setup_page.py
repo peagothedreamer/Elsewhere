@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import queue
+import sys
 import threading
 import time
 
@@ -24,7 +25,7 @@ import theme_c
 from inject import DeviceLockedError, InjectionError, _run_sync, list_devices
 
 # 状态 → 页面。缺省（error / locked）留在当前页。
-PAGES = {"absent": 0, "trust": 1, "devmode": 2, "ready": 3}
+PAGES = {"absent": 0, "driver": 0, "trust": 1, "devmode": 2, "ready": 3}
 
 COUNTERS = ["01 / 03", "02 / 03", "03 / 03", "完成"]
 ACTIONS = ["重新检测", "重新配对", "重新执行", "开始使用"]
@@ -100,14 +101,31 @@ QPushButton#GuideLater:hover {{
 """
 
 
+def apple_driver_missing() -> bool:
+    """Windows 上是否缺 Apple 设备驱动（iTunes / Microsoft Store 的「Apple 设备」附带）。"""
+    if sys.platform != "win32":
+        return False
+    try:
+        import winreg
+
+        key = winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            r"SYSTEM\CurrentControlSet\Services\Apple Mobile Device Service",
+        )
+        winreg.CloseKey(key)
+        return False
+    except OSError:
+        return True
+
+
 def probe_device() -> tuple[str, str]:
-    """返回 (状态, 说明)。状态：absent / trust / devmode / ready / error。"""
+    """返回 (状态, 说明)。状态：absent / driver / trust / devmode / ready / error。"""
     try:
         devices = list_devices(use_mock=False)
     except Exception as exc:
         return "error", str(exc)
     if not devices:
-        return "absent", ""
+        return ("driver", "") if apple_driver_missing() else ("absent", "")
     dev = devices[0]
     try:
         if dev.is_developer_mode_enabled():
@@ -241,9 +259,10 @@ class SetupDialog(QDialog):
         self._timer.timeout.connect(self._tick)
         self._timer.start(500)
 
-        start = {"absent": 0, "locked": 1, "trust": 1, "devmode": 2, "ready": 3}
+        start = {"absent": 0, "driver": 0, "locked": 1, "trust": 1, "devmode": 2, "ready": 3}
         self._set_page(start.get(state, 0))
         self._set_status(*{
+            "driver": ("未检测到 Apple 设备驱动，先按第 1 步安装。", "error"),
             "locked": ("iPhone 已锁定，解锁后自动继续。", "busy"),
             "trust": ("等待手机信任这台电脑…", "busy"),
             "devmode": ("开发者模式未开启，打开后自动继续。", "busy"),
@@ -380,6 +399,10 @@ class SetupDialog(QDialog):
         self._state = state
         if state == "error":
             self._set_status(detail or "检测失败", "error")
+            return
+        if state == "driver":
+            self._set_page(0)
+            self._set_status("未检测到 Apple 设备驱动，先按第 1 步安装。", "error")
             return
         if state == "locked":
             if self._page < 1:

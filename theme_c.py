@@ -42,6 +42,11 @@ QLabel#StatusText {
     color: #F1EBDC;
     font-size: 12px;
 }
+QLabel#Credit {
+    color: #A7A18F;
+    font-size: 11px;
+    letter-spacing: 2px;
+}
 QComboBox#DeviceCombo {
     background: transparent;
     border: 1px solid #4A565E;

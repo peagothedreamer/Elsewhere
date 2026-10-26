@@ -11,10 +11,12 @@ from __future__ import annotations
 import queue
 import sys
 import threading
+from pathlib import Path
 
-from PySide6.QtCore import QRect, QRectF, QSize, Qt, QTimer
+from PySide6.QtCore import QRect, QRectF, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import (
     QColor,
+    QDesktopServices,
     QFont,
     QIcon,
     QPainter,
@@ -251,9 +253,21 @@ class MainWindow(QMainWindow):
         self.refresh_btn = QPushButton("刷新设备")
         self.refresh_btn.setObjectName("TopGhost")
         self.refresh_btn.clicked.connect(lambda: self.refresh_devices(guide=True))
+        self.help_btn = QPushButton("使用说明")
+        self.help_btn.setObjectName("TopGhost")
+        self.help_btn.clicked.connect(
+            lambda: QDesktopServices.openUrl(
+                QUrl("https://github.com/peagothedreamer/Elsewhere")
+            )
+        )
         bar.addWidget(self.device_combo)
         bar.addWidget(self.refresh_btn)
+        bar.addWidget(self.help_btn)
         bar.addStretch(1)
+
+        credit = QLabel("peago")
+        credit.setObjectName("Credit")
+        bar.addWidget(credit)
 
         status_box = QWidget()
         status_lay = QHBoxLayout(status_box)
@@ -1310,6 +1324,9 @@ def main() -> int:
     app.setStyle("Fusion")
     app.setFont(QFont("Bahnschrift", 9))
     app.setStyleSheet(theme_c.QSS)
+    icon_path = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent)) / "app.ico"
+    if icon_path.exists():
+        app.setWindowIcon(QIcon(str(icon_path)))
     win = MainWindow()
     win.show()
     return app.exec()

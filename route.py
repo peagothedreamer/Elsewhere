@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Optional
 
 from inject import Coordinate, Device, InjectionError
+from paths import user_file
 
 EARTH_RADIUS_M = 6371008.8
 MODE_TELEPORT = "teleport"
@@ -24,8 +25,10 @@ DEFAULT_SPEED = 3.0          # m/s
 DEFAULT_COOLDOWN = 1.0       # s
 SMOOTH_TICK_S = 0.1
 RECONNECT_RETRY_S = 2.0      # 断连后重试注入的间隔
-# 预设随应用目录存放，迁移时一并带走。
-PRESETS_PATH = Path(__file__).resolve().parent / "routes.json"
+# 预设放用户数据目录；首次运行从旧版源码目录迁移一次。
+PRESETS_PATH = user_file(
+    "routes.json", legacy=Path(__file__).resolve().parent / "routes.json"
+)
 
 
 def distance_m(a: Coordinate, b: Coordinate) -> float:
