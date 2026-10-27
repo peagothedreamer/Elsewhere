@@ -4,6 +4,8 @@ import os
 import sys
 from pathlib import Path
 
+from PyInstaller.utils.hooks import copy_metadata
+
 ROOT = Path(SPECPATH).resolve().parent
 IS_WIN = sys.platform == "win32"
 IS_MAC = sys.platform == "darwin"
@@ -64,6 +66,15 @@ def _drop_qt_data(name: str) -> bool:
 
 
 datas = [(str(ROOT / 'src' / 'web'), 'web')]
+
+# 这两个包在 import 时用 importlib.metadata.version() 读自身版本；PyInstaller
+# 默认只收模块不收 dist-info，冻结后会抛 PackageNotFoundError。
+# apple_compress 只在 macOS 安装（pyimg4 的 darwin 分支）。
+for _dist in ('pyimg4', 'apple_compress'):
+    try:
+        datas += copy_metadata(_dist)
+    except Exception:
+        pass
 
 if IS_WIN:
     # pytun_pmd3 在 import 时通过 ctypes 加载 wintun.dll；PyInstaller 不会自动收集它。
