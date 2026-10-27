@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   build-windows:
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
