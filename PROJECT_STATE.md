@@ -12,6 +12,7 @@ macOS 适配（依据 `iOSRealRun-cli-18-macOS适配报告.md` 的落地清单�
 - 不照抄 iOSRealRun-cli-18 的 kernel `utun` 方案，注入层 `src/inject.py` 零改动。
 - 更新包命名固定为 `-portable.zip`（Windows）与 `-arm64.dmg`（macOS），`updater.pick_asset()` 按后缀匹配。
 - 用户数据目录：Windows `%APPDATA%\Elsewhere`，macOS `~/Library/Application Support/Elsewhere`。
+- 更新检查不走 `api.github.com`（未认证每 IP 60 次/小时，共享出口必然 403）：改为请求 `releases/latest`，读 302 后的 tag，按固定命名拼安装包地址。
 - 打包只裁非运行必需件：QML 运行时 DLL、未导入的 PySide6 绑定、`opengl32sw.dll`、Qt 的 OpenSSL 后端、多余插件、chardet；Inno 用 `lzma2/ultra64`。`Qt6WebEngineCore` 无 debug 段，不可再裁，占安装包一半以上。
 
 ## 下一步

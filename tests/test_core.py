@@ -257,20 +257,21 @@ def test_version_compare() -> None:
 
 
 def test_release_assets() -> None:
-    from updater import parse_release, pick_asset
+    from updater import parse_tag_url, pick_asset
 
-    release = parse_release(json.dumps({
-        "tag_name": "v0.4.0",
-        "assets": [
-            {"name": "Elsewhere-0.4.0-portable.zip", "browser_download_url": "u1"},
-            {"name": "Elsewhere-0.4.0-arm64.dmg", "browser_download_url": "u2"},
-        ],
-    }).encode())
+    release = parse_tag_url(
+        "https://github.com/peagothedreamer/Elsewhere/releases/tag/v0.4.0"
+    )
     assert release is not None and release.version == "0.4.0"
-    assert pick_asset(release.assets, "win32")["browser_download_url"] == "u1"
-    assert pick_asset(release.assets, "darwin")["browser_download_url"] == "u2"
+    win = pick_asset(release.assets, "win32")
+    mac = pick_asset(release.assets, "darwin")
+    assert win["name"] == "Elsewhere-0.4.0-portable.zip"
+    assert mac["name"] == "Elsewhere-0.4.0-arm64.dmg"
+    assert win["browser_download_url"].endswith(
+        "/releases/download/v0.4.0/Elsewhere-0.4.0-portable.zip"
+    )
     assert pick_asset(release.assets, "linux") is None
-    assert parse_release(b"{not json") is None
+    assert parse_tag_url("https://github.com/x/y/releases/latest") is None
 
 
 def test_platform_paths() -> None:

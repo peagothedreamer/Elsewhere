@@ -5,7 +5,6 @@
 """
 from __future__ import annotations
 
-import json
 import os
 import re
 import subprocess
@@ -17,9 +16,11 @@ from pathlib import Path
 from PySide6.QtCore import QObject, QUrl, Signal
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
-APP_VERSION = "1.0.0"  # 发布时由 CI 按 tag 覆盖
+APP_VERSION = "1.0.1"  # 发布时由 CI 按 tag 覆盖
 REPO = "peagothedreamer/Elsewhere"
-LATEST_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
+# 不走 api.github.com：未认证 API 每个 IP 每小时只有 60 次，共享出口常被耗尽（403）。
+# releases/latest 会 302 到 /releases/tag/<tag>，网页请求没有这个限制。
+LATEST_URL = f"https://github.com/{REPO}/releases/latest"
 USER_AGENT = f"Elsewhere/{APP_VERSION}"
 
 WINDOWS_SCRIPT = r"""param([int]$WaitPid, [string]$Zip, [string]$AppDir)
@@ -86,15 +87,24 @@ def pick_asset(assets, platform: str = sys.platform) -> dict | None:
     return None
 
 
-def parse_release(raw: bytes) -> Release | None:
-    try:
-        data = json.loads(raw.decode("utf-8"))
-        tag = str(data["tag_name"]).strip()
-        assets = tuple(data.get("assets") or ())
-    except (ValueError, KeyError, TypeError):
+def asset_urls(version: str) -> tuple[dict, ...]:
+    """安装包命名固定（见 release.yml），可直接由版本号拼出下载地址。"""
+    base = f"https://github.com/{REPO}/releases/download/v{version}"
+    return tuple(
+        {"name": name, "browser_download_url": f"{base}/{name}"}
+        for name in (
+            f"Elsewhere-{version}-portable.zip",
+            f"Elsewhere-{version}-arm64.dmg",
+        )
+    )
+
+
+def parse_tag_url(url: str) -> Release | None:
+    match = re.search(r"/releases/tag/([^/?#]+)", url or "")
+    if match is None:
         return None
-    version = tag.lstrip("vV")
-    return Release(version, assets) if version else None
+    version = match.group(1).lstrip("vV")
+    return Release(version, asset_urls(version)) if version else None
 
 
 class Updater(QObject):
@@ -127,7 +137,6 @@ class Updater(QObject):
     def _request(url: str) -> QNetworkRequest:
         request = QNetworkRequest(QUrl(url))
         request.setRawHeader(b"User-Agent", USER_AGENT.encode())
-        request.setRawHeader(b"Accept", b"application/vnd.github+json")
         request.setAttribute(
             QNetworkRequest.Attribute.RedirectPolicyAttribute,
             QNetworkRequest.RedirectPolicy.NoLessSafeRedirectPolicy,
@@ -137,13 +146,14 @@ class Updater(QObject):
     def _on_checked(self, reply: QNetworkReply) -> None:
         try:
             ok = reply.error() == QNetworkReply.NetworkError.NoError
-            raw = bytes(reply.readAll().data())
+            # 跟随 302 后 reply.url() 就是 /releases/tag/<tag>。
+            url = reply.url().toString()
             message = reply.errorString()
         finally:
             reply.deleteLater()
-        release = parse_release(raw) if ok else None
+        release = parse_tag_url(url) if ok else None
         if release is None:
-            self.error.emit(f"检查更新失败：{message if not ok else '响应格式错误'}")
+            self.error.emit(f"检查更新失败：{message if not ok else '无法解析最新版本'}")
             return
         self.checked.emit(release)
 
