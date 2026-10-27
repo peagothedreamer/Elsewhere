@@ -1,4 +1,8 @@
-"""核心逻辑自检：坐标解析、mock 设备、路线几何、两种播放执行器。无第三方依赖。"""
+"""核心逻辑自检：坐标解析、mock 设备、路线几何、两种播放执行器、更新检查。
+
+不启动 Qt 界面，不访问网络。
+"""
+import json
 import pathlib
 import queue
 import sys
@@ -243,6 +247,32 @@ def test_user_file_migration() -> None:
             paths.APP_DIR = old_dir
 
 
+def test_version_compare() -> None:
+    from updater import is_newer
+
+    assert is_newer("v0.4.0", "0.3.0")
+    assert is_newer("0.3.1", "0.3")
+    assert not is_newer("0.3.0", "0.3.0")
+    assert not is_newer("v0.3.0", "0.10.0")
+
+
+def test_release_assets() -> None:
+    from updater import parse_release, pick_asset
+
+    release = parse_release(json.dumps({
+        "tag_name": "v0.4.0",
+        "assets": [
+            {"name": "Elsewhere-0.4.0-portable.zip", "browser_download_url": "u1"},
+            {"name": "Elsewhere-0.4.0-arm64.dmg", "browser_download_url": "u2"},
+        ],
+    }).encode())
+    assert release is not None and release.version == "0.4.0"
+    assert pick_asset(release.assets, "win32")["browser_download_url"] == "u1"
+    assert pick_asset(release.assets, "darwin")["browser_download_url"] == "u2"
+    assert pick_asset(release.assets, "linux") is None
+    assert parse_release(b"{not json") is None
+
+
 if __name__ == "__main__":
     test_parse_coordinate()
     test_mock_device()
@@ -254,4 +284,6 @@ if __name__ == "__main__":
     test_runner_survives_disconnect()
     test_search_parse()
     test_user_file_migration()
+    test_version_compare()
+    test_release_assets()
     print("OK")

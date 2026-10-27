@@ -71,6 +71,7 @@ from route import (
     save_presets,
 )
 from setup_page import SetupDialog
+from updater import APP_VERSION, Updater, apply_update, is_newer, pick_asset
 
 
 def _font(families: tuple[str, ...], size: int) -> QFont:
@@ -222,6 +223,7 @@ class MainWindow(QMainWindow):
         self._device_state = "absent"
         self._guide_open = False
         self._guide_dialog: SetupDialog | None = None
+        self._updated_version = ""
         self._poll_timer = QTimer(self)
         self._poll_timer.timeout.connect(self._poll_events)
 
@@ -261,12 +263,16 @@ class MainWindow(QMainWindow):
                 QUrl("https://github.com/peagothedreamer/Elsewhere")
             )
         )
+        self.update_btn = QPushButton("检查更新")
+        self.update_btn.setObjectName("TopGhost")
+        self.update_btn.clicked.connect(self.check_updates)
         self.default_btn = QPushButton("默认位置（浙大紫金港）")
         self.default_btn.setObjectName("TopGhost")
         self.default_btn.clicked.connect(self.use_default)
         bar.addWidget(self.device_combo)
         bar.addWidget(self.refresh_btn)
         bar.addWidget(self.help_btn)
+        bar.addWidget(self.update_btn)
         bar.addWidget(self.default_btn)
         bar.addStretch(1)
 
@@ -295,6 +301,12 @@ class MainWindow(QMainWindow):
         status_lay.addWidget(self.device_status)
         bar.addWidget(status_box)
         root.addWidget(topbar)
+
+        self.updater = Updater(self)
+        self.updater.checked.connect(self._on_update_checked)
+        self.updater.progress.connect(self._on_update_progress)
+        self.updater.downloaded.connect(self._on_update_downloaded)
+        self.updater.error.connect(self._on_update_error)
 
         main = QWidget()
         main.setObjectName("Main")
@@ -1293,6 +1305,66 @@ class MainWindow(QMainWindow):
         self._refresh_presets()
         self.preset_combo.setCurrentText(new)
         self.log.append(f"已重命名为：{new}")
+
+    # ---------------- 更新 ----------------
+    def check_updates(self) -> None:
+        self.update_btn.setDisabled(True)
+        self.update_btn.setText("检查中…")
+        self.updater.check()
+
+    def _on_update_checked(self, release) -> None:
+        self._reset_update_btn()
+        if not is_newer(release.version, APP_VERSION):
+            QMessageBox.information(self, "检查更新", f"已是最新版本 v{APP_VERSION}")
+            return
+        if not getattr(sys, "frozen", False):
+            QMessageBox.information(
+                self, "发现新版本",
+                f"最新版本 v{release.version}，当前为源码运行，请 git pull 更新。",
+            )
+            return
+        asset = pick_asset(release.assets)
+        if asset is None:
+            QMessageBox.warning(
+                self, "发现新版本",
+                f"最新版本 v{release.version}，但当前平台没有可用安装包。",
+            )
+            return
+        if QMessageBox.question(
+            self, "发现新版本",
+            f"最新版本 v{release.version}（当前 v{APP_VERSION}）。\n\n现在下载并更新？",
+        ) != QMessageBox.Yes:
+            return
+        self._updated_version = release.version
+        self.update_btn.setDisabled(True)
+        self.update_btn.setText("下载 0%")
+        self.updater.download(asset)
+
+    def _on_update_progress(self, received: int, total: int) -> None:
+        if total > 0:
+            self.update_btn.setText(f"下载 {received * 100 // total}%")
+        else:
+            self.update_btn.setText(f"下载 {received // 1048576} MB")
+
+    def _on_update_downloaded(self, path: str) -> None:
+        try:
+            apply_update(path)
+        except Exception as exc:
+            self._reset_update_btn()
+            QMessageBox.critical(self, "更新失败", str(exc))
+            return
+        self.update_btn.setText("正在更新…")
+        self.log.append(f"已下载 v{self._updated_version}，正在更新并重启")
+        QTimer.singleShot(300, self.close)  # 先让界面刷新，再由后台脚本替换文件
+
+    def _on_update_error(self, message: str) -> None:
+        self._reset_update_btn()
+        self.log.append(message)
+        QMessageBox.warning(self, "更新失败", message)
+
+    def _reset_update_btn(self) -> None:
+        self.update_btn.setDisabled(False)
+        self.update_btn.setText("检查更新")
 
     # ---------------- 关闭 ----------------
     def closeEvent(self, event) -> None:
