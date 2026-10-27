@@ -68,7 +68,7 @@ function init(lat, lon, zoom) {
   map.setView([lat, lon], zoom || 15);
 }
 
-function setRoute(pts, closed) {
+function setRoute(pts, closed, fit) {
   if (pointLayer) { map.removeLayer(pointLayer); pointLayer = null; }
   if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
   if (!pts || pts.length === 0) return;
@@ -91,8 +91,8 @@ function setRoute(pts, closed) {
     routeLayer = L.polyline(line, {
       color: '#A32C5E', weight: 2.4, opacity: 1, dashArray: '7 5',
     }).addTo(map);
-    map.fitBounds(routeLayer.getBounds(), { padding: [32, 32] });
-  } else {
+    if (fit) map.fitBounds(routeLayer.getBounds(), { padding: [32, 32] });
+  } else if (fit) {
     map.setView(pts[0]);
   }
 }

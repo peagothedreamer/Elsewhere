@@ -5,11 +5,11 @@
 ## 下载安装
 
 **Windows 10/11**
-- [下载 Elsewhere-Setup-0.3.1.exe](https://github.com/peagothedreamer/Elsewhere/releases/download/v0.3.1/Elsewhere-Setup-0.3.1.exe) — 安装版（推荐）
-- [Elsewhere-0.3.1-portable.zip](https://github.com/peagothedreamer/Elsewhere/releases/download/v0.3.1/Elsewhere-0.3.1-portable.zip) — 免安装，解压后运行 `Elsewhere.exe`
+- [下载 Elsewhere-Setup-1.0.0.exe](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.0/Elsewhere-Setup-1.0.0.exe) — 安装版（推荐）
+- [Elsewhere-1.0.0-portable.zip](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.0/Elsewhere-1.0.0-portable.zip) — 免安装，解压后运行 `Elsewhere.exe`
 
 **macOS 14+（Apple Silicon）**
-- [下载 Elsewhere-0.3.1-arm64.dmg](https://github.com/peagothedreamer/Elsewhere/releases/download/v0.3.1/Elsewhere-0.3.1-arm64.dmg) — 打开后把 `Elsewhere.app` 拖进「应用程序」
+- [下载 Elsewhere-1.0.0-arm64.dmg](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.0/Elsewhere-1.0.0-arm64.dmg) — 打开后把 `Elsewhere.app` 拖进「应用程序」
 
 全部版本见 [Releases](https://github.com/peagothedreamer/Elsewhere/releases)。
 
@@ -22,6 +22,7 @@
 
 ## 使用前准备
 - Windows 10/11，或 macOS 14+（Apple Silicon）
+- macOS 不需要 iTunes、Apple 设备驱动或 Xcode；也不用 `sudo`，普通用户运行即可
 - iPhone：**iOS 17+**，开启「设置 → 隐私与安全性 → 开发者模式」并重启确认
 - 数据线连接并解锁 iPhone；首次连接时在手机上点「信任」
 - 地图瓦片与地点搜索需要联网；首次注入需联网下载并挂载开发者镜像（DDI），之后注入与路线播放可离线
@@ -33,7 +34,7 @@ python -m pip install -r requirements.txt
 python src/main.py
 ```
 
-macOS 上把 `python` 换成 `python3`。需要 Python 3.11+。
+macOS 上把 `python` 换成 `python3`，**不要加 `sudo`**。需要 Python 3.11+。
 
 用户预设存放位置：
 - Windows：`%APPDATA%\Elsewhere\`

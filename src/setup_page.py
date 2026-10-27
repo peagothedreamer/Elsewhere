@@ -58,7 +58,7 @@ QLabel#GuideCmd {{
     background: {theme_c.PAPER2};
     border: 1px solid {theme_c.LINE};
     color: {theme_c.INK};
-    font-family: "Consolas", "Courier New", monospace;
+    font-family: "Consolas", "Menlo", "Courier New", monospace;
     font-size: 12px;
     padding: 7px 9px;
 }}
@@ -83,6 +83,11 @@ QPushButton#GuidePrimary {{
 QPushButton#GuidePrimary:hover {{
     background: #132029;
 }}
+QPushButton#GuidePrimary:pressed {{
+    background: #0A1116;
+    border-color: {theme_c.MAGENTA};
+    padding-top: 2px;
+}}
 QPushButton#GuidePrimary:disabled {{
     background: {theme_c.FAINT};
     border-color: {theme_c.FAINT};
@@ -98,6 +103,10 @@ QPushButton#GuideLater {{
 }}
 QPushButton#GuideLater:hover {{
     color: {theme_c.INK};
+}}
+QPushButton#GuideLater:pressed {{
+    color: {theme_c.INK};
+    background: #EADFCB;
 }}
 """
 
@@ -260,17 +269,22 @@ class SetupDialog(QDialog):
             "devmode": ("开发者模式未开启，打开后自动继续。", "busy"),
             "ready": ("已就绪", "ok"),
         }.get(state, ("未检测到 iPhone，插好后自动继续。", "muted")))
+        for button in self.findChildren(QPushButton):
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.adjustSize()
 
     # ---------------- 页面 ----------------
     def _build_pages(self) -> None:
-        if sys.platform == "win32":
+        if sys.platform == "darwin":
+            connect_hint = (
+                "数据线连接 iPhone 与电脑，保持解锁。"
+                "macOS 自带 usbmuxd，无需安装 iTunes 或任何驱动。"
+            )
+        else:
             connect_hint = (
                 "数据线连接 iPhone 与电脑，保持解锁。缺少驱动时点下方「自动安装驱动」"
                 "（下载 Apple Mobile Device Support）；也可以手动安装 iTunes 或「Apple 设备」。"
             )
-        else:
-            connect_hint = "数据线连接 iPhone 与电脑，保持解锁。macOS 自带连接支持，无需安装驱动。"
         specs = [
             (
                 "连接电脑",

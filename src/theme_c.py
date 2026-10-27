@@ -67,6 +67,13 @@ QComboBox#DeviceCombo {
     max-height: 30px;
     font-size: 13px;
 }
+/* color 会继承进弹出列表，改动它顶栏就没字；只能把列表底色也换成深色。 */
+QComboBox#DeviceCombo QAbstractItemView {
+    background: #1D2B36;
+    border: 1px solid #4A565E;
+    selection-background-color: #33454F;
+    selection-color: #F1EBDC;
+}
 QComboBox#DeviceCombo::drop-down {
     width: 26px;
     border: none;
@@ -498,5 +505,124 @@ QToolTip {
     border: 1px solid #1D2B36;
     padding: 4px 7px;
     font-size: 12px;
+}
+
+/* ---------- pressed feedback ---------- */
+QPushButton#Primary:pressed {
+    background: #0A1116;
+    border-color: #A32C5E;
+    padding-top: 2px;
+}
+QPushButton#AddPoint:pressed {
+    background: #A32C5E;
+    border-color: #A32C5E;
+    color: #F1EBDC;
+    padding-top: 2px;
+}
+QPushButton#TextCmd:pressed {
+    background: #EADFCB;
+    color: #1D2B36;
+}
+QPushButton#TextDanger:pressed {
+    background: #F2DFD7;
+    color: #7E2B1E;
+}
+QPushButton#DangerStamp:pressed {
+    background: #EAD3C9;
+    border-color: #7E2B1E;
+    padding-top: 2px;
+}
+QPushButton#DangerStamp:disabled {
+    background: #F4EFE2;
+    border-color: #D8CFBC;
+    color: #B7AD96;
+}
+QPushButton#Quick:pressed {
+    background: #DCD0B8;
+    color: #1D2B36;
+    border-color: #46555F;
+}
+QPushButton#Stamp:pressed {
+    background: #DCD0B8;
+    border-color: #1D2B36;
+    padding-top: 2px;
+}
+QPushButton#StopStamp:pressed {
+    background: #DCD0B8;
+    border-color: #1D2B36;
+    padding-top: 2px;
+}
+QPushButton#PresetCmd:pressed {
+    background: #EADFCB;
+    border-color: #1D2B36;
+    color: #1D2B36;
+    padding-top: 2px;
+}
+QPushButton#PresetDanger:pressed {
+    background: #F2DFD7;
+    border-color: #7E2B1E;
+    padding-top: 2px;
+}
+QPushButton#TopGhost:pressed {
+    background: #2A3943;
+    border-color: #A32C5E;
+    color: #F1EBDC;
+    padding-top: 2px;
+}
+QPushButton#Credit:pressed {
+    color: #F1EBDC;
+}
+QTabBar::tab:hover {
+    background: #EAE0CC;
+}
+QTabBar::tab:pressed {
+    background: #DCD0B8;
+}
+QCheckBox#LoopCheck::indicator:hover {
+    border-color: #46555F;
+}
+QCheckBox#LoopCheck::indicator:checked:hover {
+    background: #8E2452;
+}
+QComboBox#DeviceCombo:hover {
+    border-color: #6E7A82;
+}
+QComboBox#PresetCombo:hover {
+    border-color: #46555F;
+}
+QComboBox#SpecCombo:hover {
+    color: #A32C5E;
+}
+QDoubleSpinBox#SpecSpin::up-button:hover,
+QDoubleSpinBox#SpecSpin::down-button:hover,
+QSpinBox#SpecSpin::up-button:hover,
+QSpinBox#SpecSpin::down-button:hover {
+    background: #EADFCB;
+}
+QDoubleSpinBox#SpecSpin::up-button:pressed,
+QDoubleSpinBox#SpecSpin::down-button:pressed,
+QSpinBox#SpecSpin::up-button:pressed,
+QSpinBox#SpecSpin::down-button:pressed {
+    background: #DCD0B8;
+}
+QPushButton#TopGhost:disabled {
+    color: #6E7A82;
+    border-color: #39454D;
+}
+QPushButton#AddPoint:disabled {
+    background: transparent;
+    border-color: #D8CFBC;
+    color: #B7AD96;
+}
+QPushButton#TextCmd:disabled, QPushButton#TextDanger:disabled {
+    color: #B7AD96;
+}
+QPushButton#Quick:disabled {
+    color: #B7AD96;
+    border-color: #D8CFBC;
+}
+QPushButton#PresetCmd:disabled, QPushButton#PresetDanger:disabled {
+    color: #B7AD96;
+    border-color: #D8CFBC;
 }
 """

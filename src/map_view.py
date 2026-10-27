@@ -72,9 +72,14 @@ class MapView(QWebEngineView):
     def _on_pick(self, lat: float, lon: float) -> None:
         self.picked.emit(Coordinate(round(lat, 6), round(lon, 6)))
 
-    def set_route(self, points: list[Coordinate], closed: bool = True) -> None:
+    def set_route(
+        self, points: list[Coordinate], closed: bool = True, fit: bool = False
+    ) -> None:
         data = [[p.latitude, p.longitude] for p in points]
-        self._js(f"setRoute({json.dumps(data)}, {'true' if closed else 'false'})")
+        self._js(
+            f"setRoute({json.dumps(data)}, {'true' if closed else 'false'}, "
+            f"{'true' if fit else 'false'})"
+        )
 
     def set_picked(self, coord: Coordinate) -> None:
         self._js(f"setPicked({coord.latitude}, {coord.longitude})")

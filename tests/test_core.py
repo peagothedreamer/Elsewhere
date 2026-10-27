@@ -273,6 +273,21 @@ def test_release_assets() -> None:
     assert parse_release(b"{not json") is None
 
 
+def test_platform_paths() -> None:
+    """macOS 用户目录是 ~/Library/Application Support/Elsewhere，不是 ~/Elsewhere。"""
+    old = paths.sys.platform
+    try:
+        paths.sys.platform = "darwin"
+        mac = paths._app_dir()
+        assert mac.name == "Elsewhere"
+        assert mac.parent.name == "Application Support"
+        assert mac.parent.parent.name == "Library"
+        paths.sys.platform = "win32"
+        assert paths._app_dir().name == "Elsewhere"
+    finally:
+        paths.sys.platform = old
+
+
 if __name__ == "__main__":
     test_parse_coordinate()
     test_mock_device()
@@ -286,4 +301,5 @@ if __name__ == "__main__":
     test_user_file_migration()
     test_version_compare()
     test_release_assets()
+    test_platform_paths()
     print("OK")

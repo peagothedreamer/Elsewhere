@@ -18,6 +18,12 @@ logger = logging.getLogger(__name__)
 # 默认位置：浙江大学紫金港校区
 DEFAULT_LOCATION = (30.308270, 120.078263)
 
+# 预设校区：(名称, (纬度, 经度))
+DEFAULT_PLACES = (
+    ("浙大紫金港", DEFAULT_LOCATION),
+    ("浙大玉泉", (30.266556, 120.120016)),
+)
+
 # 全进程共享的后台事件循环：pymobiledevice3 的 DVT/隧道 API 都是异步的。
 _loop: asyncio.AbstractEventLoop | None = None
 _loop_lock = threading.Lock()

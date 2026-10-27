@@ -5,7 +5,7 @@ import sys
 import threading
 from pathlib import Path
 
-from PySide6.QtCore import QRect, QRectF, QSize, Qt, QTimer, QUrl
+from PySide6.QtCore import QEvent, QRect, QRectF, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import (
     QColor,
     QDesktopServices,
@@ -48,6 +48,7 @@ import theme_c
 from geocode import Geocoder
 from inject import (
     DEFAULT_LOCATION,
+    DEFAULT_PLACES,
     Coordinate,
     Device,
     DeviceLockedError,
@@ -228,6 +229,7 @@ class MainWindow(QMainWindow):
         self._poll_timer.timeout.connect(self._poll_events)
 
         self._build_ui()
+        QApplication.instance().installEventFilter(self)
         self._refresh_presets()
         self._refresh_route_view()
         self.refresh_devices(guide=True)
@@ -266,14 +268,16 @@ class MainWindow(QMainWindow):
         self.update_btn = QPushButton("检查更新")
         self.update_btn.setObjectName("TopGhost")
         self.update_btn.clicked.connect(self.check_updates)
-        self.default_btn = QPushButton("默认位置（浙大紫金港）")
-        self.default_btn.setObjectName("TopGhost")
-        self.default_btn.clicked.connect(self.use_default)
+        self.default_combo = ChevronCombo(chevron=theme_c.PAPER)
+        self.default_combo.setObjectName("DeviceCombo")
+        self.default_combo.setFixedWidth(150)
+        self.default_combo.addItems([name for name, _ in DEFAULT_PLACES])
+        self.default_combo.activated.connect(self.use_default)
         bar.addWidget(self.device_combo)
         bar.addWidget(self.refresh_btn)
         bar.addWidget(self.help_btn)
         bar.addWidget(self.update_btn)
-        bar.addWidget(self.default_btn)
+        bar.addWidget(self.default_combo)
         bar.addStretch(1)
 
         credit = QPushButton("peago")
@@ -342,6 +346,12 @@ class MainWindow(QMainWindow):
         root.addWidget(main, 1)
         self.setCentralWidget(central)
 
+        for button in self.findChildren(QPushButton):
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.tabs.tabBar().setCursor(Qt.CursorShape.PointingHandCursor)
+        self.infinite_check.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.search_results.setCursor(Qt.CursorShape.PointingHandCursor)
+
     def _build_map_panel(self) -> QWidget:
         panel = QWidget()
         panel.setObjectName("MapPanel")
@@ -405,6 +415,19 @@ class MainWindow(QMainWindow):
     def _sync_search_panel(self) -> None:
         self.search_panel.adjustSize()
         self.search_panel.raise_()
+
+    def eventFilter(self, obj, event) -> bool:
+        # 点击搜索面板以外的地方收回结果列表。
+        if (
+            event.type() == QEvent.Type.MouseButtonPress
+            and self.search_results.isVisible()
+            and isinstance(obj, QWidget)
+            and obj is not self.search_panel
+            and not self.search_panel.isAncestorOf(obj)
+        ):
+            self.search_results.setVisible(False)
+            self._sync_search_panel()
+        return super().eventFilter(obj, event)
 
     def _leader(self) -> QFrame:
         line = QFrame()
@@ -930,7 +953,10 @@ class MainWindow(QMainWindow):
         elif label == "next":
             idx, point = data
             self._manual_idx = idx + 1
+            self._reset_status()
             self.point_list.setCurrentRow(idx)
+            if 0 <= idx < self.point_list.count():
+                self.point_list.scrollToItem(self.point_list.item(idx))
             self.map.set_current(point)
             self.log.append(f"跳到第 {idx + 1} 点：{point}")
         elif label == "recover":
@@ -1024,14 +1050,15 @@ class MainWindow(QMainWindow):
         if self._spawn("clear", dev.clear_location):
             self._set_status("正在恢复真实位置…", "busy")
 
-    def use_default(self) -> None:
-        lat, lon = DEFAULT_LOCATION
+    def use_default(self, index: int) -> None:
+        name, (lat, lon) = DEFAULT_PLACES[index]
         coord = Coordinate(lat, lon)
+        self.tabs.setCurrentIndex(0)
         self.lat_edit.setText(f"{lat:.6f}")
         self.lon_edit.setText(f"{lon:.6f}")
         self.map.set_picked(coord)
         self.map.fly_to(coord)
-        self.log.append(f"已填入默认位置：{lat:.6f}, {lon:.6f}")
+        self.log.append(f"已填入{name}：{lat:.6f}, {lon:.6f}")
 
     # ---------------- 路线：编辑 ----------------
     def add_route_point(self) -> None:
@@ -1043,6 +1070,10 @@ class MainWindow(QMainWindow):
         self._route_points.append(coord)
         self._manual_idx = 0
         self._refresh_route_view()
+        self.point_list.setCurrentRow(len(self._route_points) - 1)
+        self.point_list.scrollToItem(
+            self.point_list.item(len(self._route_points) - 1)
+        )
 
     def delete_route_point(self) -> None:
         row = self.point_list.currentRow()
@@ -1050,6 +1081,10 @@ class MainWindow(QMainWindow):
             del self._route_points[row]
             self._manual_idx = 0
             self._refresh_route_view()
+            if self._route_points:
+                self.point_list.setCurrentRow(
+                    min(row, len(self._route_points) - 1)
+                )
 
     def _move_point(self, delta: int) -> None:
         row = self.point_list.currentRow()
@@ -1061,8 +1096,9 @@ class MainWindow(QMainWindow):
             )
             self._refresh_route_view()
             self.point_list.setCurrentRow(new)
+            self.point_list.scrollToItem(self.point_list.item(new))
 
-    def _refresh_route_view(self) -> None:
+    def _refresh_route_view(self, fit: bool = False) -> None:
         self.point_list.clear()
         pts = self._route_points
         for i, p in enumerate(pts):
@@ -1087,7 +1123,13 @@ class MainWindow(QMainWindow):
             self.distance_label.setText(self._format_m(total))
         else:
             self.distance_label.setText("0 m")
-        self.map.set_route(pts, closed=False)  # 编辑时显示开口折线，保存/开始时才闭合
+        has_points = bool(pts)
+        self.delete_point_btn.setEnabled(has_points)
+        self.up_btn.setEnabled(len(pts) > 1)
+        self.down_btn.setEnabled(len(pts) > 1)
+        self._on_mode_changed()
+        # 编辑时显示开口折线，保存/开始时才闭合；fit 只由加载预设显式开启
+        self.map.set_route(pts, closed=False, fit=fit)
 
     @staticmethod
     def _format_m(meters: float) -> str:
@@ -1102,7 +1144,9 @@ class MainWindow(QMainWindow):
         self.cooldown_row.setEnabled(not smooth)
         self.speed_row.setEnabled(smooth)
         self.next_btn.setEnabled(
-            not smooth and not (self._runner is not None and self._runner.running)
+            not smooth
+            and bool(self._route_points)
+            and not (self._runner is not None and self._runner.running)
         )
 
     def _current_route(self) -> Route:
@@ -1126,6 +1170,18 @@ class MainWindow(QMainWindow):
             self.delete_preset_btn, self.rename_preset_btn,
         ):
             w.setEnabled(enabled)
+        if enabled:
+            has_presets = bool(self._presets)
+            for button in (
+                self.load_preset_btn,
+                self.delete_preset_btn,
+                self.rename_preset_btn,
+            ):
+                button.setEnabled(has_presets)
+            has_points = bool(self._route_points)
+            self.delete_point_btn.setEnabled(has_points)
+            self.up_btn.setEnabled(len(self._route_points) > 1)
+            self.down_btn.setEnabled(len(self._route_points) > 1)
 
     # ---------------- 路线：播放 ----------------
     def start_route(self) -> None:
@@ -1229,13 +1285,21 @@ class MainWindow(QMainWindow):
             return
         idx = self._manual_idx % len(self._route_points)
         point = self._route_points[idx]
-        self._spawn("next", lambda: dev.set_location(point), (idx, point))
+        if self._spawn("next", lambda: dev.set_location(point), (idx, point)):
+            self._set_status("正在注入…", "busy")
 
     # ---------------- 预设 ----------------
     def _refresh_presets(self) -> None:
         self.preset_combo.clear()
         for name in self._presets:
             self.preset_combo.addItem(name)
+        has_presets = bool(self._presets)
+        for button in (
+            self.load_preset_btn,
+            self.delete_preset_btn,
+            self.rename_preset_btn,
+        ):
+            button.setEnabled(has_presets)
 
     def save_preset(self) -> None:
         if not self._route_points:
@@ -1275,7 +1339,10 @@ class MainWindow(QMainWindow):
             self.infinite_check.setChecked(False)
             self.loops_spin.setValue(route.loops)
         self._manual_idx = 0
-        self._refresh_route_view()
+        self._refresh_route_view(fit=True)
+        if self._route_points:
+            self.point_list.setCurrentRow(0)
+            self.point_list.scrollToItem(self.point_list.item(0))
         self.log.append(f"已加载预设：{name}")
 
     def delete_preset(self) -> None:

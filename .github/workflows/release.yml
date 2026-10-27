@@ -45,7 +45,12 @@ jobs:
         shell: pwsh
         run: |
           $ver = "${{ github.ref_name }}".TrimStart("v")
-          Compress-Archive -Path dist/Elsewhere -DestinationPath "dist/Elsewhere-$ver-portable.zip"
+          # 7-Zip 的 deflate 等级比 Compress-Archive 的默认值高，产物小几 MB。
+          # 在 dist 里打包，保证 zip 根目录仍是 Elsewhere/（更新脚本按此查找）。
+          Push-Location dist
+          & "C:\Program Files\7-Zip\7z.exe" a -tzip -mx=9 "Elsewhere-$ver-portable.zip" "Elsewhere"
+          if ($LASTEXITCODE -ne 0) { throw "7z failed" }
+          Pop-Location
 
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
@@ -99,6 +104,7 @@ jobs:
       - name: Make DMG
         run: |
           ver="${GITHUB_REF_NAME#v}"
+          ver="${ver//\//-}"
           mkdir -p dist/dmg
           ditto "dist/Elsewhere.app" "dist/dmg/Elsewhere.app"
           cp LICENSE THIRD_PARTY_NOTICES.md dist/dmg/

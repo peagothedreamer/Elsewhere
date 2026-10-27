@@ -17,7 +17,7 @@ from pathlib import Path
 from PySide6.QtCore import QObject, QUrl, Signal
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
-APP_VERSION = "0.3.0"  # 发布时由 CI 按 tag 覆盖
+APP_VERSION = "1.0.0"  # 发布时由 CI 按 tag 覆盖
 REPO = "peagothedreamer/Elsewhere"
 LATEST_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
 USER_AGENT = f"Elsewhere/{APP_VERSION}"
