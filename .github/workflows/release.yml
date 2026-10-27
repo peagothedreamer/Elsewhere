@@ -3,6 +3,7 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -91,7 +92,7 @@ jobs:
 
       - name: Build (PyInstaller)
         env:
-          ELSEWHERE_VERSION: ${{ github.ref_name }}
+          ELSEWHERE_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '0.0.0' }}
         run: python -m PyInstaller --noconfirm --clean packaging/Elsewhere.spec
 
       - name: Make DMG
@@ -113,6 +114,7 @@ jobs:
 
   publish:
     needs: [build-windows, build-macos]
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4

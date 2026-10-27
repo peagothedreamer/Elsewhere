@@ -7,10 +7,13 @@ PyTCP 栈是进程级单例，故整个进程只保留一个常驻会话并复�
 from __future__ import annotations
 
 import asyncio
+import logging
 import queue
 import threading
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 # 默认位置：浙江大学紫金港校区
 DEFAULT_LOCATION = (30.308270, 120.078263)
@@ -147,20 +150,60 @@ class RealDevice(Device):
     async def _ensure_session(self):
         if self._session is not None:
             return self._session
+        from pymobiledevice3.exceptions import AlreadyMountedError, RSDRequiredError
+        from pymobiledevice3.lockdown import create_using_usbmux
         from pymobiledevice3.remote.rsd_tunnel import PreferredRsdTunnel
         from pymobiledevice3.services.dvt.instruments.dvt_provider import DvtProvider
         from pymobiledevice3.services.dvt.instruments.location_simulation import (
             LocationSimulation,
         )
+        from pymobiledevice3.services.mobile_image_mounter import (
+            MobileImageMounterService,
+            auto_mount,
+            image_type_for_device,
+        )
+
+        # DVT 的定位服务依赖开发者镜像；新机器/重启后 DDI 不会自己挂上。
+        # 先走 usbmux/lockdown 挂载（快），iOS 27+ 的 cryptex 镜像只能走 RSD，稍后补。
+        # 已挂载时直接跳过：auto_mount 会先下载镜像再检查，离线环境不该因此失败。
+        mount_over_rsd = False
+        lockdown = await create_using_usbmux(serial=self._serial, autopair=False)
+        try:
+            mounted = False
+            try:
+                async with MobileImageMounterService(lockdown=lockdown) as mounter:
+                    mounted = await mounter.is_image_mounted(image_type_for_device(lockdown))
+            except Exception:
+                logger.exception("查询开发者镜像状态失败")
+            if mounted:
+                logger.info("开发者镜像已在设备上")
+            else:
+                try:
+                    await auto_mount(lockdown)
+                    logger.info("开发者镜像已挂载")
+                except AlreadyMountedError:
+                    logger.info("开发者镜像已在设备上")
+                except RSDRequiredError:
+                    mount_over_rsd = True
+        finally:
+            await lockdown.close()
 
         tunnel = PreferredRsdTunnel(serial=self._serial)
         try:
             rsd = await tunnel.aopen()
+            logger.info("RSD 隧道已建立")
+            if mount_over_rsd:
+                try:
+                    await auto_mount(rsd)
+                    logger.info("开发者镜像已挂载（RSD）")
+                except AlreadyMountedError:
+                    logger.info("开发者镜像已在设备上（RSD）")
             dvt = DvtProvider(rsd)
             await dvt.connect()
             ls = LocationSimulation(dvt)
             await ls.connect()
         except BaseException:
+            logger.exception("建立注入会话失败")
             await tunnel.aclose()
             raise
         self._session = (tunnel, dvt, ls)
@@ -213,7 +256,8 @@ class RealDevice(Device):
             await ls.set(coord.latitude, coord.longitude)
 
         try:
-            _run_sync(_do())
+            # 首次可能要下载并挂载 DDI，给足时间。
+            _run_sync(_do(), timeout=300)
         except Exception as exc:
             self.reset()  # 会话可能已随断连失效：关掉它，下次注入重建
             raise InjectionError(f"模拟位置注入失败：{exc}") from exc
@@ -225,7 +269,7 @@ class RealDevice(Device):
             await ls.clear()
 
         try:
-            _run_sync(_do())
+            _run_sync(_do(), timeout=300)
         except Exception as exc:
             self.reset()
             raise InjectionError(f"恢复真实位置失败：{exc}") from exc
