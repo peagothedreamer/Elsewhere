@@ -11,7 +11,7 @@ from pathlib import Path
 if sys.platform == "darwin":
     os.environ.setdefault("QTWEBENGINE_DISABLE_SANDBOX", "1")
 
-from PySide6.QtCore import QEvent, QRect, QRectF, QSize, Qt, QTimer, QUrl
+from PySide6.QtCore import QRect, QRectF, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import (
     QColor,
     QDesktopServices,
@@ -230,12 +230,12 @@ class MainWindow(QMainWindow):
         self._device_state = "absent"
         self._guide_open = False
         self._guide_dialog: SetupDialog | None = None
-        self._search_filter_on = False
         self._updated_version = ""
         self._poll_timer = QTimer(self)
         self._poll_timer.timeout.connect(self._poll_events)
 
         self._build_ui()
+        QApplication.instance().focusChanged.connect(self._on_focus_changed)
         self._refresh_presets()
         self._refresh_route_view()
         self.refresh_devices(guide=True)
@@ -367,6 +367,7 @@ class MainWindow(QMainWindow):
         layout.setSpacing(0)
 
         self.map = MapView()
+        self.map.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.map.picked.connect(self._on_map_pick)
         layout.addWidget(self.map)
 
@@ -423,29 +424,21 @@ class MainWindow(QMainWindow):
         self.search_panel.raise_()
 
     def _set_search_results_visible(self, visible: bool) -> None:
-        # 只在结果列表显示期间挂应用级过滤器：QtWebEngine 启动时构造
-        # QWebEngineUrlRequestJob 会发 ChildAdded，Shiboken 在包装层会崩。
-        app = QApplication.instance()
-        if visible and not self._search_filter_on:
-            app.installEventFilter(self)
-            self._search_filter_on = True
-        elif not visible and self._search_filter_on:
-            app.removeEventFilter(self)
-            self._search_filter_on = False
         self.search_results.setVisible(visible)
         self._sync_search_panel()
 
-    def eventFilter(self, obj, event) -> bool:
-        # 点击搜索面板以外的地方收回结果列表。
+    def _on_focus_changed(self, _old, new) -> None:
+        # 不装应用级事件过滤器：QtWebEngine 的内部对象没有 Python wrapper，
+        # Shiboken 分发事件时会崩。焦点移出搜索面板即收起结果。
+        if not self.search_results.isVisible():
+            return
         if (
-            event.type() == QEvent.Type.MouseButtonPress
-            and self.search_results.isVisible()
-            and isinstance(obj, QWidget)
-            and obj is not self.search_panel
-            and not self.search_panel.isAncestorOf(obj)
+            new is not None
+            and isinstance(new, QWidget)
+            and (new is self.search_panel or self.search_panel.isAncestorOf(new))
         ):
-            self._set_search_results_visible(False)
-        return super().eventFilter(obj, event)
+            return
+        self._set_search_results_visible(False)
 
     def _leader(self) -> QFrame:
         line = QFrame()
