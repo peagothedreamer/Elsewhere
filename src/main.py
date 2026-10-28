@@ -1414,14 +1414,16 @@ class MainWindow(QMainWindow):
             self.update_btn.setText(f"下载 {received // 1048576} MB")
 
     def _on_update_downloaded(self, path: str) -> None:
+        self.update_btn.setDisabled(True)
+        self.update_btn.setText("正在更新…")
+        self.log.append(f"已下载 v{self._updated_version}，正在更新并重启")
+        QApplication.processEvents()  # 先画出「正在更新」，再等替换脚本握手
         try:
             apply_update(path)
         except Exception as exc:
             self._reset_update_btn()
             QMessageBox.critical(self, "更新失败", str(exc))
             return
-        self.update_btn.setText("正在更新…")
-        self.log.append(f"已下载 v{self._updated_version}，正在更新并重启")
         QTimer.singleShot(300, self.close)  # 先让界面刷新，再由后台脚本替换文件
 
     def _on_update_error(self, message: str) -> None:

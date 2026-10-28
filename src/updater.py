@@ -10,38 +10,100 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
 from PySide6.QtCore import QObject, QUrl, Signal
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
-APP_VERSION = "1.0.1"  # 发布时由 CI 按 tag 覆盖
+APP_VERSION = "1.0.2"  # 发布时由 CI 按 tag 覆盖
 REPO = "peagothedreamer/Elsewhere"
 # 不走 api.github.com：未认证 API 每个 IP 每小时只有 60 次，共享出口常被耗尽（403）。
 # releases/latest 会 302 到 /releases/tag/<tag>，网页请求没有这个限制。
 LATEST_URL = f"https://github.com/{REPO}/releases/latest"
 USER_AGENT = f"Elsewhere/{APP_VERSION}"
 
-WINDOWS_SCRIPT = r"""param([int]$WaitPid, [string]$Zip, [string]$AppDir)
-try { Wait-Process -Id $WaitPid -Timeout 120 -ErrorAction SilentlyContinue } catch {}
-Start-Sleep -Milliseconds 800
-$tmp = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString("N"))
+PROGRESS_SCRIPT = r"""param([int]$WaitPid, [string]$Text)
+# 只在旧进程退出后露面：更新期间别留一段「什么都没有」的空白。
+try { Wait-Process -Id $WaitPid -Timeout 180 -ErrorAction SilentlyContinue } catch {}
+Start-Sleep -Milliseconds 300
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+[System.Windows.Forms.Application]::EnableVisualStyles()
+$form = New-Object System.Windows.Forms.Form
+$form.Text = 'Elsewhere 更新'
+$form.ClientSize = New-Object System.Drawing.Size(360, 96)
+$form.StartPosition = 'CenterScreen'
+$form.FormBorderStyle = 'FixedToolWindow'
+$form.ControlBox = $false
+$form.TopMost = $true
+$form.ShowInTaskbar = $false
+$label = New-Object System.Windows.Forms.Label
+$label.Text = $Text
+$label.Dock = 'Fill'
+$label.TextAlign = 'MiddleCenter'
+$label.Font = [System.Drawing.SystemFonts]::MessageBoxFont
+$form.Controls.Add($label)
+$timer = New-Object System.Windows.Forms.Timer
+$timer.Interval = 300000
+$timer.Add_Tick({ $form.Close() })
+$timer.Start()
+[System.Windows.Forms.Application]::Run($form)
+Remove-Item -Force $PSCommandPath -ErrorAction SilentlyContinue
+"""
+
+WINDOWS_SCRIPT = r"""param([int]$WaitPid, [string]$Zip, [string]$AppDir, [string]$Marker, [int]$ProgressPid, [string]$ProgressScript)
+$log = Join-Path ([IO.Path]::GetTempPath()) 'Elsewhere-update.log'
+function Log([string]$m) {
+  try { Add-Content -LiteralPath $log -Value ("[{0}] {1}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $m) } catch {}
+}
+# 握手文件：主进程确认脚本真的跑起来了才退出，避免「关了但什么也没发生」。
+Set-Content -LiteralPath $Marker -Value $PID -ErrorAction SilentlyContinue
+Log "start pid=$WaitPid zip=$Zip app=$AppDir"
+$tmp = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString('N'))
+$ok = $false
 try {
-  Expand-Archive -LiteralPath $Zip -DestinationPath $tmp -Force
+  try { Wait-Process -Id $WaitPid -Timeout 180 -ErrorAction SilentlyContinue } catch {}
+  Start-Sleep -Milliseconds 800
+  # 进程退出后文件锁还要一会儿才释放：等 Elsewhere.exe 可以独占写。
+  $exe = Join-Path $AppDir 'Elsewhere.exe'
+  for ($i = 0; $i -lt 60; $i++) {
+    try { $f = [IO.File]::Open($exe, 'Open', 'ReadWrite', 'None'); $f.Close(); break }
+    catch { Start-Sleep -Milliseconds 500 }
+  }
+  Log 'extract'
+  Add-Type -AssemblyName System.IO.Compression.FileSystem
+  [IO.Compression.ZipFile]::ExtractToDirectory($Zip, $tmp)
   $src = Join-Path $tmp 'Elsewhere'
   if (-not (Test-Path (Join-Path $src 'Elsewhere.exe'))) { $src = $tmp }
-  Copy-Item -Path (Join-Path $src '*') -Destination $AppDir -Recurse -Force
-} catch {}
-Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
-Remove-Item -Force $Zip -ErrorAction SilentlyContinue
+  Log "copy $src -> $AppDir"
+  & robocopy $src $AppDir /E /IS /IT /R:10 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
+  $rc = $LASTEXITCODE
+  Log "robocopy rc=$rc"
+  $ok = $rc -lt 8
+} catch {
+  Log ("error: " + $_.Exception.Message)
+} finally {
+  Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+  Remove-Item -Force $Zip -ErrorAction SilentlyContinue
+}
+if (-not $ok) {
+  try {
+    Add-Type -AssemblyName System.Windows.Forms
+    [System.Windows.Forms.MessageBox]::Show("更新失败，详见日志：$log", 'Elsewhere') | Out-Null
+  } catch {}
+}
+if ($ProgressPid -gt 0) { Stop-Process -Id $ProgressPid -Force -ErrorAction SilentlyContinue }
+Remove-Item -Force $ProgressScript -ErrorAction SilentlyContinue
+Start-Process -FilePath (Join-Path $AppDir 'Elsewhere.exe') -WorkingDirectory $AppDir
 Remove-Item -Force $PSCommandPath -ErrorAction SilentlyContinue
-Start-Process -FilePath (Join-Path $AppDir 'Elsewhere.exe')
 """
 
 MACOS_SCRIPT = r"""#!/bin/bash
 pid=$1; dmg=$2; app=$3
 while kill -0 "$pid" 2>/dev/null; do sleep 0.5; done
+osascript -e 'display notification "正在更新，完成后会自动重启" with title "Elsewhere"' >/dev/null 2>&1
 mnt=$(mktemp -d)
 if ! hdiutil attach -nobrowse -quiet "$dmg" -mountpoint "$mnt"; then
   rm -rf "$mnt"; open "$app"; exit 1
@@ -59,6 +121,16 @@ rm -rf "$mnt" "$dmg"
 open "$app"
 rm -f "$0"
 """
+
+
+def _log(message: str) -> None:
+    """更新日志固定写 %TEMP%\\Elsewhere-update.log，失败时可以让人翻。"""
+    try:
+        path = Path(tempfile.gettempdir()) / "Elsewhere-update.log"
+        with path.open("a", encoding="utf-8") as stream:
+            stream.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] app: {message}\n")
+    except OSError:
+        pass
 
 
 @dataclass(frozen=True)
@@ -209,18 +281,62 @@ def _spawn(args: list[str], **kwargs) -> None:
 
 
 def _apply_windows(archive: Path) -> None:
-    script = Path(tempfile.gettempdir()) / f"elsewhere-update-{os.getpid()}.ps1"
+    temp = Path(tempfile.gettempdir())
+    pid = os.getpid()
+    script = temp / f"elsewhere-update-{pid}.ps1"
+    progress_script = temp / f"elsewhere-progress-{pid}.ps1"
+    marker = temp / f"elsewhere-update-{pid}.started"
     script.write_text(WINDOWS_SCRIPT, encoding="utf-8-sig")
-    _spawn(
-        [
-            "powershell", "-NoProfile", "-WindowStyle", "Hidden",
-            "-ExecutionPolicy", "Bypass", "-File", str(script),
-            "-WaitPid", str(os.getpid()),
-            "-Zip", str(archive),
-            "-AppDir", str(Path(sys.executable).resolve().parent),
-        ],
-        creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
-    )
+    progress_script.write_text(PROGRESS_SCRIPT, encoding="utf-8-sig")
+    marker.unlink(missing_ok=True)
+    flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+    # 进度窗自己等旧进程退出后再出现，避免压在主界面上。
+    progress = None
+    try:
+        progress = subprocess.Popen(
+            [
+                "powershell", "-NoProfile", "-WindowStyle", "Hidden",
+                "-ExecutionPolicy", "Bypass", "-File", str(progress_script),
+                "-WaitPid", str(pid),
+                "-Text", "正在更新，完成后会自动重启…",
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            close_fds=True,
+            creationflags=flags,
+        )
+    except OSError as exc:
+        _log(f"progress window failed: {exc}")
+    _log(f"spawn pid={pid} zip={archive} app={Path(sys.executable).resolve().parent}")
+    try:
+        _spawn(
+            [
+                "powershell", "-NoProfile", "-WindowStyle", "Hidden",
+                "-ExecutionPolicy", "Bypass", "-File", str(script),
+                "-WaitPid", str(pid),
+                "-Zip", str(archive),
+                "-AppDir", str(Path(sys.executable).resolve().parent),
+                "-Marker", str(marker),
+                "-ProgressPid", str(progress.pid if progress else 0),
+                "-ProgressScript", str(progress_script),
+            ],
+            creationflags=flags,
+        )
+    except OSError as exc:
+        if progress is not None:
+            progress.kill()
+        _log(f"spawn failed: {exc}")
+        raise
+    # 脚本被安全软件拦掉时，进程会静默消失；只有收到握手文件才关闭自己。
+    deadline = time.time() + 8
+    while time.time() < deadline and not marker.exists():
+        time.sleep(0.1)
+    if not marker.exists():
+        if progress is not None:
+            progress.kill()
+        _log("script did not start")
+        raise RuntimeError("更新程序未能启动（可能被安全软件拦截），请手动下载安装包")
 
 
 def _apply_macos(archive: Path) -> None:

@@ -5,11 +5,11 @@
 ## 下载安装
 
 **Windows 10/11**
-- [下载 Elsewhere-Setup-1.0.1.exe](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.1/Elsewhere-Setup-1.0.1.exe) — 安装版（推荐）
-- [Elsewhere-1.0.1-portable.zip](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.1/Elsewhere-1.0.1-portable.zip) — 免安装，解压后运行 `Elsewhere.exe`
+- [下载 Elsewhere-Setup-1.0.2.exe](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.2/Elsewhere-Setup-1.0.2.exe) — 安装版（推荐）
+- [Elsewhere-1.0.2-portable.zip](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.2/Elsewhere-1.0.2-portable.zip) — 免安装，解压后运行 `Elsewhere.exe`
 
 **macOS 14+（Apple Silicon）**
-- [下载 Elsewhere-1.0.1-arm64.dmg](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.1/Elsewhere-1.0.1-arm64.dmg) — 打开后把 `Elsewhere.app` 拖进「应用程序」
+- [下载 Elsewhere-1.0.2-arm64.dmg](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.2/Elsewhere-1.0.2-arm64.dmg) — 打开后把 `Elsewhere.app` 拖进「应用程序」
 
 全部版本见 [Releases](https://github.com/peagothedreamer/Elsewhere/releases)。
 
