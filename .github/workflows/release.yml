@@ -122,7 +122,8 @@ jobs:
             [ -d "$HOME/Library/Application Support/Elsewhere" ] && break
           done
           kill -0 $PID 2>/dev/null || { echo "::error::.app exited during startup"; cat "$LOG"; exit 1; }
-          sleep 5   # 给 QtWebEngineProcess 留出启动时间，抓启动期报错
+          sleep 15  # 等地图页面和 QtWebEngine 完成初始化后再确认进程仍存活
+          kill -0 $PID 2>/dev/null || { echo "::error::.app crashed after startup"; cat "$LOG"; exit 1; }
           kill $PID 2>/dev/null || true
           wait $PID 2>/dev/null || true
 

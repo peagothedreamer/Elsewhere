@@ -230,12 +230,12 @@ class MainWindow(QMainWindow):
         self._device_state = "absent"
         self._guide_open = False
         self._guide_dialog: SetupDialog | None = None
+        self._search_filter_on = False
         self._updated_version = ""
         self._poll_timer = QTimer(self)
         self._poll_timer.timeout.connect(self._poll_events)
 
         self._build_ui()
-        QApplication.instance().installEventFilter(self)
         self._refresh_presets()
         self._refresh_route_view()
         self.refresh_devices(guide=True)
@@ -422,6 +422,19 @@ class MainWindow(QMainWindow):
         self.search_panel.adjustSize()
         self.search_panel.raise_()
 
+    def _set_search_results_visible(self, visible: bool) -> None:
+        # 只在结果列表显示期间挂应用级过滤器：QtWebEngine 启动时构造
+        # QWebEngineUrlRequestJob 会发 ChildAdded，Shiboken 在包装层会崩。
+        app = QApplication.instance()
+        if visible and not self._search_filter_on:
+            app.installEventFilter(self)
+            self._search_filter_on = True
+        elif not visible and self._search_filter_on:
+            app.removeEventFilter(self)
+            self._search_filter_on = False
+        self.search_results.setVisible(visible)
+        self._sync_search_panel()
+
     def eventFilter(self, obj, event) -> bool:
         # 点击搜索面板以外的地方收回结果列表。
         if (
@@ -431,8 +444,7 @@ class MainWindow(QMainWindow):
             and obj is not self.search_panel
             and not self.search_panel.isAncestorOf(obj)
         ):
-            self.search_results.setVisible(False)
-            self._sync_search_panel()
+            self._set_search_results_visible(False)
         return super().eventFilter(obj, event)
 
     def _leader(self) -> QFrame:
@@ -524,8 +536,7 @@ class MainWindow(QMainWindow):
             return
         self.search_status.setText("搜索中…")
         self.search_status.setVisible(True)
-        self.search_results.setVisible(False)
-        self._sync_search_panel()
+        self._set_search_results_visible(False)
         self.geocoder.search(text)
 
     def _on_search_results(self, places) -> None:
@@ -535,7 +546,7 @@ class MainWindow(QMainWindow):
             item.setData(Qt.ItemDataRole.UserRole, place.coordinate)
             item.setSizeHint(QSize(0, 34))
             self.search_results.addItem(item)
-        self.search_results.setVisible(True)
+        self._set_search_results_visible(True)
         self.search_status.setText(f"{len(places)} 个结果")
         self.search_status.setVisible(True)
         self._sync_search_panel()
