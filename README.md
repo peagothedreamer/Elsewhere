@@ -20,6 +20,14 @@
   xattr -dr com.apple.quarantine /Applications/Elsewhere.app
   ```
 
+## 更新
+- 顶栏「检查更新」→ 有新版本时确认即可：应用下载官方包、退出、替换文件并自动重启。
+- 更新期间会出现一个「正在更新」的小窗，完成后自动消失。
+- macOS 必须先把 `Elsewhere.app` 放进「应用程序」再更新（不能直接挂在 dmg 里运行）。
+- 源码运行不支持自动更新。
+- 更新失败会弹窗并给出日志路径：Windows 为 `%TEMP%\Elsewhere-update.log`。
+- **0.3.1 及更早版本**的「检查更新」走 GitHub API，共享出口 IP 用尽额度时会报 403；手动下载一次新版即可。
+
 ## 使用前准备
 - Windows 10/11，或 macOS 14+（Apple Silicon）
 - macOS 不需要 iTunes、Apple 设备驱动或 Xcode；也不用 `sudo`，普通用户运行即可
@@ -52,7 +60,7 @@ macOS 上把 `python` 换成 `python3`，**不要加 `sudo`**。需要 Python 3.
 - 使用 OpenStreetMap（FOSSGIS 的 `tile.openstreetmap.de`，无需 Key）。
 
 ### 单点
-输入经纬度（默认浙大紫金港）→「设为模拟位置」；「恢复真实位置」还原。注入在后台线程执行，界面不会卡住。
+输入经纬度（顶栏可在「浙大紫金港 / 浙大玉泉」之间切换，选中即填入）→「设为模拟位置」；「恢复真实位置」还原。注入在后台线程执行，界面不会卡住。
 
 ### 路线
 1. 在地图上点击或在「路线」页输入经纬度，逐个「添加点」；地图上实时显示折线与编号点（编辑时为开口折线）。
