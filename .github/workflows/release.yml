@@ -111,7 +111,6 @@ jobs:
           # 模块名在 PYZ 目录里是明文，直接从冻结出来的可执行文件里查。
           grep -aq pmd_pytcp "$BIN" || { echo "::error::pmd_pytcp missing from frozen bundle"; exit 1; }
 
-          export QTWEBENGINE_DISABLE_SANDBOX=1
           rm -rf "$HOME/Library/Application Support/Elsewhere"
           LOG="$RUNNER_TEMP/elsewhere-smoke.log"
           "$BIN" >"$LOG" 2>&1 &

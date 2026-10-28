@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+import os
 import queue
 import sys
 import threading
 from pathlib import Path
+
+# QtWebEngine 的沙箱要求正式签名；ad-hoc 签名的 .app 在 macOS 上会在
+# CrBrowserMain 崩溃。必须在导入 QtWebEngine 之前关闭沙箱。
+if sys.platform == "darwin":
+    os.environ.setdefault("QTWEBENGINE_DISABLE_SANDBOX", "1")
 
 from PySide6.QtCore import QEvent, QRect, QRectF, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import (
