@@ -18,6 +18,7 @@ macOS 适配（依据 `iOSRealRun-cli-18-macOS适配报告.md` 的落地清单�
 
 ## 下一步
 1. macOS 真机跑报告 §7 冒烟清单（重点：免 root 隧道日志、DDI 首次联网挂载、退出无残留、`.app` 启动与地图）。
+   `build-macos` 已加 `Smoke test (.app)` 步骤（启动、用户目录、`pmd_pytcp` 是否进冻结包、启动报错），覆盖 §7 第 1/10 条中可自动化的部分；第 2–9 条需 Apple Silicon 真机 + iPhone。
 2. 冻结版若报 `ModuleNotFoundError: pmd_pytcp`，在 spec 里加 `collect_submodules('pmd_pytcp')`。
 3. 正式分发前补 Developer ID 签名 + `notarytool` 公证。
 

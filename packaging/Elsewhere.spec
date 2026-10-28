@@ -58,7 +58,11 @@ def _drop_qt_binary(name: str) -> bool:
     if '/qml/' in n:
         return True
     base = n.rsplit('/', 1)[-1]
-    if base.split('.', 1)[0] in BINDING_DROP:
+    # macOS 的 C++ 库没有 Qt6 前缀（QtQml / QtQuick ...），不能按名字一刀切；
+    # 只删 Python 扩展（.pyd / .so），否则会把 QtWebChannel 依赖的 QtQml 一起删掉。
+    if base.split('.', 1)[0] in BINDING_DROP and (
+        base.endswith('.pyd') or base.endswith('.so')
+    ):
         return True
     return any(
         base.startswith('Qt6' + stem) or base.startswith('Qt' + stem)
@@ -179,7 +183,7 @@ if IS_MAC:
             'CFBundleDisplayName': 'Elsewhere',
             'CFBundleShortVersionString': VERSION,
             'CFBundleVersion': VERSION,
-            'LSMinimumSystemVersion': '14.0',
+            'LSMinimumSystemVersion': '15.0',
             'NSHighResolutionCapable': True,
             'LSApplicationCategoryType': 'public.app-category.utilities',
         },

@@ -8,14 +8,14 @@
 - [下载 Elsewhere-Setup-1.0.2.exe](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.2/Elsewhere-Setup-1.0.2.exe) — 安装版（推荐）
 - [Elsewhere-1.0.2-portable.zip](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.2/Elsewhere-1.0.2-portable.zip) — 免安装，解压后运行 `Elsewhere.exe`
 
-**macOS 14+（Apple Silicon）**
+**macOS 15+（Apple Silicon）**
 - [下载 Elsewhere-1.0.2-arm64.dmg](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.2/Elsewhere-1.0.2-arm64.dmg) — 打开后把 `Elsewhere.app` 拖进「应用程序」
 
 全部版本见 [Releases](https://github.com/peagothedreamer/Elsewhere/releases)。
 
 应用未签名：
 - Windows 首次运行可能提示「已保护你的电脑」：点「更多信息」→「仍要运行」。
-- macOS 会提示「无法验证开发者」。macOS 14 可右键点 app →「打开」；macOS 15 起需到「系统设置 → 隐私与安全性」→「仍要打开」，或执行：
+- macOS 会提示「无法验证开发者」：到「系统设置 → 隐私与安全性」→「仍要打开」，或执行：
   ```bash
   xattr -dr com.apple.quarantine /Applications/Elsewhere.app
   ```
@@ -29,7 +29,7 @@
 - **0.3.1 及更早版本**的「检查更新」走 GitHub API，共享出口 IP 用尽额度时会报 403；手动下载一次新版即可。
 
 ## 使用前准备
-- Windows 10/11，或 macOS 14+（Apple Silicon）
+- Windows 10/11，或 macOS 15+（Apple Silicon）
 - macOS 不需要 iTunes、Apple 设备驱动或 Xcode；也不用 `sudo`，普通用户运行即可
 - iPhone：**iOS 17+**，开启「设置 → 隐私与安全性 → 开发者模式」并重启确认
 - 数据线连接并解锁 iPhone；首次连接时在手机上点「信任」

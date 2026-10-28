@@ -1,2 +1,4 @@
 pymobiledevice3==11.44.0
-PySide6==6.12.0
+# PySide6 6.12 的 macOS Addons 绑定要求 macOS 26；6.11.3 要求 macOS 15。
+PySide6==6.12.0; sys_platform != "darwin"
+PySide6==6.11.3; sys_platform == "darwin"

@@ -101,6 +101,36 @@ jobs:
           ELSEWHERE_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '0.0.0' }}
         run: python -m PyInstaller --noconfirm --clean packaging/Elsewhere.spec
 
+      - name: Smoke test (.app)
+        run: |
+          set -euo pipefail
+          BIN="dist/Elsewhere.app/Contents/MacOS/Elsewhere"
+          test -x "$BIN"
+
+          # 注入层懒加载 userspace_tunnel，PyInstaller 若漏收 pmd_pytcp，要到连真机才炸。
+          # 模块名在 PYZ 目录里是明文，直接从冻结出来的可执行文件里查。
+          grep -aq pmd_pytcp "$BIN" || { echo "::error::pmd_pytcp missing from frozen bundle"; exit 1; }
+
+          export QTWEBENGINE_DISABLE_SANDBOX=1
+          rm -rf "$HOME/Library/Application Support/Elsewhere"
+          LOG="$RUNNER_TEMP/elsewhere-smoke.log"
+          "$BIN" >"$LOG" 2>&1 &
+          PID=$!
+
+          for _ in $(seq 20); do
+            sleep 1
+            kill -0 $PID 2>/dev/null || break
+            [ -d "$HOME/Library/Application Support/Elsewhere" ] && break
+          done
+          kill -0 $PID 2>/dev/null || { echo "::error::.app exited during startup"; cat "$LOG"; exit 1; }
+          sleep 5   # 给 QtWebEngineProcess 留出启动时间，抓启动期报错
+          kill $PID 2>/dev/null || true
+          wait $PID 2>/dev/null || true
+
+          cat "$LOG"
+          grep -qiE "Traceback|ModuleNotFoundError|ImportError" "$LOG" && { echo "::error::startup error"; exit 1; }
+          test -d "$HOME/Library/Application Support/Elsewhere" || { echo "::error::user data dir not created"; exit 1; }
+
       - name: Make DMG
         run: |
           ver="${GITHUB_REF_NAME#v}"
