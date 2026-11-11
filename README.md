@@ -45,7 +45,7 @@ python src/main.py
 
 macOS 上把 `python` 换成 `python3`，**不要加 `sudo`**。需要 Python 3.11+。
 
-用户数据存放位置（路线预设 `routes.json`、界面设置 `settings.ini`）：
+用户预设存放位置：
 - Windows：`%APPDATA%\Elsewhere\`
 - macOS：`~/Library/Application Support/Elsewhere/`
 
@@ -68,7 +68,7 @@ macOS 上把 `python` 换成 `python3`，**不要加 `sudo`**。需要 Python 3.
 2. 选模式（默认多点平滑）：
    - **跳点传送（瞬移）**：逐点瞬移，点间按「冷却」等待。
    - **多点路线（平滑）**：沿闭环按「速度」(m/s) 平滑移动。
-3. 设置循环次数。模式、速度、冷却和循环次数会被记住（存入 `settings.ini`），下次启动沿用。
+3. 设置循环次数。
 4. 「开始 / 暂停 / 停止」；跳点模式可点「下一个」手动跳；播放中的位置以绿色圆点显示在地图上。
 5. 预设：保存 / 加载 / 删除 / 重命名，存于用户数据目录下的 `routes.json`。
 
