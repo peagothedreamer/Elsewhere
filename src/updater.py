@@ -17,7 +17,7 @@ from pathlib import Path
 from PySide6.QtCore import QObject, QUrl, Signal
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
-APP_VERSION = "1.0.2"  # 发布时由 CI 按 tag 覆盖
+APP_VERSION = "1.0.4"  # 发布时由 CI 按 tag 覆盖
 REPO = "peagothedreamer/Elsewhere"
 # 不走 api.github.com：未认证 API 每个 IP 每小时只有 60 次，共享出口常被耗尽（403）。
 # releases/latest 会 302 到 /releases/tag/<tag>，网页请求没有这个限制。
@@ -289,7 +289,9 @@ def _apply_windows(archive: Path) -> None:
     script.write_text(WINDOWS_SCRIPT, encoding="utf-8-sig")
     progress_script.write_text(PROGRESS_SCRIPT, encoding="utf-8-sig")
     marker.unlink(missing_ok=True)
-    flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+    # 不能用 DETACHED_PROCESS：实测 powershell.exe 会立刻以 rc=0 退出、不执行脚本。
+    # CREATE_NEW_PROCESS_GROUP 已足够脱离父进程的控制台信号，NO_WINDOW 避免闪窗。
+    flags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
     # 进度窗自己等旧进程退出后再出现，避免压在主界面上。
     progress = None
     try:
