@@ -11,7 +11,7 @@ from pathlib import Path
 if sys.platform == "darwin":
     os.environ.setdefault("QTWEBENGINE_DISABLE_SANDBOX", "1")
 
-from PySide6.QtCore import QRect, QRectF, QSize, Qt, QTimer, QUrl
+from PySide6.QtCore import QRect, QRectF, QSettings, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import (
     QColor,
     QDesktopServices,
@@ -66,6 +66,7 @@ from inject import (
     parse_coordinate,
 )
 from map_view import MapView
+from paths import user_file
 from route import (
     DEFAULT_COOLDOWN,
     DEFAULT_SPEED,
@@ -230,7 +231,11 @@ class MainWindow(QMainWindow):
         self._device_state = "absent"
         self._guide_open = False
         self._guide_dialog: SetupDialog | None = None
+        self._mock_logged = False
         self._updated_version = ""
+        self._settings = QSettings(
+            user_file("settings.ini"), QSettings.Format.IniFormat
+        )
         self._poll_timer = QTimer(self)
         self._poll_timer.timeout.connect(self._poll_events)
 
@@ -843,9 +848,28 @@ class MainWindow(QMainWindow):
         root.addWidget(self.log_route)
         self.log = self.log_route
 
-        self.mode_combo.setCurrentIndex(1)  # 默认多点（平滑）模式
+        self._restore_route_prefs()
         self._on_mode_changed()
         return page
+
+    def _restore_route_prefs(self) -> None:
+        prefs = self._settings
+        try:
+            mode = str(prefs.value("route/mode", MODE_SMOOTH))
+            speed = float(prefs.value("route/speed", DEFAULT_SPEED))
+            cooldown = float(prefs.value("route/cooldown", DEFAULT_COOLDOWN))
+            loops = int(prefs.value("route/loops", 1))
+        except (TypeError, ValueError):
+            mode, speed, cooldown, loops = MODE_SMOOTH, DEFAULT_SPEED, DEFAULT_COOLDOWN, 1
+        idx = self.mode_combo.findData(mode)
+        self.mode_combo.setCurrentIndex(idx if idx >= 0 else 1)
+        self.speed_spin.setValue(speed)
+        self.cooldown_spin.setValue(cooldown)
+        if loops == 0:
+            self.infinite_check.setChecked(True)
+        else:
+            self.infinite_check.setChecked(False)
+            self.loops_spin.setValue(loops)
 
     @staticmethod
     def _align_spin(spin) -> None:
@@ -863,7 +887,9 @@ class MainWindow(QMainWindow):
             self.log.append(f"枚举真实设备失败：{exc}")
         if not devices:
             devices = [MockDevice()]
-            self.log.append("未检测到真实设备，已回退到 Mock 设备（离线调试）。")
+            if not self._mock_logged:
+                self._mock_logged = True
+                self.log.append("未检测到真实设备，已回退到 Mock 设备（离线调试）。")
         for d in devices:
             self.device_combo.addItem(f"{d.name}  [{d.serial}]", d)
         state = self._update_status()
@@ -1446,6 +1472,13 @@ class MainWindow(QMainWindow):
         self.update_btn.setText("检查更新")
 
     # ---------------- 关闭 ----------------
+    def _save_route_prefs(self) -> None:
+        loops = 0 if self.infinite_check.isChecked() else self.loops_spin.value()
+        self._settings.setValue("route/mode", self.mode_combo.currentData())
+        self._settings.setValue("route/speed", self.speed_spin.value())
+        self._settings.setValue("route/cooldown", self.cooldown_spin.value())
+        self._settings.setValue("route/loops", loops)
+
     def closeEvent(self, event) -> None:
         if self._runner is not None:
             self._runner.stop()
@@ -1454,6 +1487,7 @@ class MainWindow(QMainWindow):
             self._monitor.stop()
             self._monitor = None
         self._poll_timer.stop()
+        self._save_route_prefs()
         for i in range(self.device_combo.count()):
             dev = self.device_combo.itemData(i)
             if dev is not None:
