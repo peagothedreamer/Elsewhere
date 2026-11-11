@@ -5,11 +5,11 @@
 ## 下载安装
 
 **Windows 10/11**
-- [下载 Elsewhere-Setup-1.0.3.exe](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.3/Elsewhere-Setup-1.0.3.exe) — 安装版（推荐）
-- [Elsewhere-1.0.3-portable.zip](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.3/Elsewhere-1.0.3-portable.zip) — 免安装，解压后运行 `Elsewhere.exe`
+- [下载 Elsewhere-Setup-1.0.4.exe](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.4/Elsewhere-Setup-1.0.4.exe) — 安装版（推荐）
+- [Elsewhere-1.0.4-portable.zip](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.4/Elsewhere-1.0.4-portable.zip) — 免安装，解压后运行 `Elsewhere.exe`
 
 **macOS 15+（Apple Silicon）**
-- [下载 Elsewhere-1.0.3-arm64.dmg](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.3/Elsewhere-1.0.3-arm64.dmg) — 打开后把 `Elsewhere.app` 拖进「应用程序」
+- [下载 Elsewhere-1.0.4-arm64.dmg](https://github.com/peagothedreamer/Elsewhere/releases/download/v1.0.4/Elsewhere-1.0.4-arm64.dmg) — 打开后把 `Elsewhere.app` 拖进「应用程序」
 
 全部版本见 [Releases](https://github.com/peagothedreamer/Elsewhere/releases)。
 
@@ -27,6 +27,7 @@
 - 源码运行不支持自动更新。
 - 更新失败会弹窗并给出日志路径：Windows 为 `%TEMP%\Elsewhere-update.log`。
 - **0.3.1 及更早版本**的「检查更新」走 GitHub API，共享出口 IP 用尽额度时会报 403；手动下载一次新版即可。
+- **1.0.3 及更早的 Windows 版本**的自动更新会在「启动更新程序」一步失败（报「更新程序未能启动」）；请手动下载 1.0.4 覆盖安装一次，之后即可自动更新。
 
 ## 使用前准备
 - Windows 10/11，或 macOS 15+（Apple Silicon）
@@ -44,7 +45,7 @@ python src/main.py
 
 macOS 上把 `python` 换成 `python3`，**不要加 `sudo`**。需要 Python 3.11+。
 
-用户预设存放位置：
+用户数据存放位置（路线预设 `routes.json`、界面设置 `settings.ini`）：
 - Windows：`%APPDATA%\Elsewhere\`
 - macOS：`~/Library/Application Support/Elsewhere/`
 
@@ -67,7 +68,7 @@ macOS 上把 `python` 换成 `python3`，**不要加 `sudo`**。需要 Python 3.
 2. 选模式（默认多点平滑）：
    - **跳点传送（瞬移）**：逐点瞬移，点间按「冷却」等待。
    - **多点路线（平滑）**：沿闭环按「速度」(m/s) 平滑移动。
-3. 设置循环次数。
+3. 设置循环次数。模式、速度、冷却和循环次数会被记住（存入 `settings.ini`），下次启动沿用。
 4. 「开始 / 暂停 / 停止」；跳点模式可点「下一个」手动跳；播放中的位置以绿色圆点显示在地图上。
 5. 预设：保存 / 加载 / 删除 / 重命名，存于用户数据目录下的 `routes.json`。
 
