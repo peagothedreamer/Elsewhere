@@ -233,8 +233,9 @@ class MainWindow(QMainWindow):
         self._guide_dialog: SetupDialog | None = None
         self._mock_logged = False
         self._updated_version = ""
+        # QSettings 只接受 str，传 Path 会直接 TypeError（Qt 绑定不做隐式转换）。
         self._settings = QSettings(
-            user_file("settings.ini"), QSettings.Format.IniFormat
+            str(user_file("settings.ini")), QSettings.Format.IniFormat
         )
         self._poll_timer = QTimer(self)
         self._poll_timer.timeout.connect(self._poll_events)
