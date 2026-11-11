@@ -74,7 +74,9 @@ from route import (
     Route,
     RouteRunner,
     distance_m,
+    load_last_preset,
     load_presets,
+    save_last_preset,
     save_presets,
 )
 from setup_page import SetupDialog
@@ -239,6 +241,7 @@ class MainWindow(QMainWindow):
         QApplication.instance().focusChanged.connect(self._on_focus_changed)
         self._refresh_presets()
         self._refresh_route_view()
+        self._restore_last_preset()
         self.refresh_devices(guide=True)
         self._poll_timer.start(100)
 
@@ -1302,6 +1305,13 @@ class MainWindow(QMainWindow):
             self._set_status("正在注入…", "busy")
 
     # ---------------- 预设 ----------------
+    def _restore_last_preset(self) -> None:
+        name = load_last_preset()
+        row = self.preset_combo.findText(name) if name else -1
+        if row >= 0:
+            self.preset_combo.setCurrentIndex(row)
+            self.load_preset()
+
     def _refresh_presets(self) -> None:
         self.preset_combo.clear()
         for name in self._presets:
@@ -1334,6 +1344,7 @@ class MainWindow(QMainWindow):
             return
         self._refresh_presets()
         self.preset_combo.setCurrentText(name)
+        save_last_preset(name)
         self.map.set_route(self._route_points, closed=True)
         self.log.append(f"已保存预设：{name}")
 
@@ -1356,6 +1367,7 @@ class MainWindow(QMainWindow):
         if self._route_points:
             self.point_list.setCurrentRow(0)
             self.point_list.scrollToItem(self.point_list.item(0))
+        save_last_preset(name)
         self.log.append(f"已加载预设：{name}")
 
     def delete_preset(self) -> None:
@@ -1366,6 +1378,8 @@ class MainWindow(QMainWindow):
             return
         del self._presets[name]
         save_presets(self._presets)
+        if load_last_preset() == name:
+            save_last_preset("")
         self._refresh_presets()
         self.log.append(f"已删除预设：{name}")
 
@@ -1382,6 +1396,8 @@ class MainWindow(QMainWindow):
             return
         self._presets[new] = self._presets.pop(name)
         save_presets(self._presets)
+        if load_last_preset() == name:
+            save_last_preset(new)
         self._refresh_presets()
         self.preset_combo.setCurrentText(new)
         self.log.append(f"已重命名为：{new}")

@@ -139,6 +139,23 @@ def test_presets_roundtrip() -> None:
         route_mod.PRESETS_PATH = old
 
 
+def test_last_preset() -> None:
+    import route as route_mod
+
+    old = route_mod.LAST_PRESET_PATH
+    try:
+        route_mod.LAST_PRESET_PATH = (
+            pathlib.Path(tempfile.mkdtemp()) / "last_preset.txt"
+        )
+        assert route_mod.load_last_preset() == ""
+        route_mod.save_last_preset("测试路线")
+        assert route_mod.load_last_preset() == "测试路线"
+        route_mod.save_last_preset("")
+        assert route_mod.load_last_preset() == ""
+    finally:
+        route_mod.LAST_PRESET_PATH = old
+
+
 def test_teleport_runner() -> None:
     p0, p1, p2 = Coordinate(30.0, 120.0), Coordinate(30.001, 120.0), Coordinate(30.002, 120.0)
     dev = RecordingDevice()
@@ -295,6 +312,7 @@ if __name__ == "__main__":
     test_distance()
     test_route_geometry()
     test_presets_roundtrip()
+    test_last_preset()
     test_teleport_runner()
     test_smooth_runner()
     test_runner_survives_disconnect()

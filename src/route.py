@@ -29,6 +29,7 @@ RECONNECT_RETRY_S = 2.0      # 断连后重试注入的间隔
 PRESETS_PATH = user_file(
     "routes.json", legacy=Path(__file__).resolve().parent / "routes.json"
 )
+LAST_PRESET_PATH = user_file("last_preset.txt")
 
 
 def distance_m(a: Coordinate, b: Coordinate) -> float:
@@ -125,6 +126,20 @@ def save_presets(presets: dict[str, Route]) -> None:
     tmp = PRESETS_PATH.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     tmp.replace(PRESETS_PATH)  # 原子替换，避免写一半损坏
+
+
+def load_last_preset() -> str:
+    try:
+        return LAST_PRESET_PATH.read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+
+
+def save_last_preset(name: str) -> None:
+    try:
+        LAST_PRESET_PATH.write_text(name, encoding="utf-8")
+    except OSError:
+        pass
 
 
 class RouteRunner:
